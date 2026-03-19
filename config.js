@@ -3,6 +3,18 @@ const WALL = 1;
 const START = 2;
 const GOAL = 3;
 
+
+/* 
+    const maze = [
+    [2, 0, 0, 1, 0],
+    [1, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 0],
+    [0, 0, 0, 1, 3]
+    
+    ];
+*/
+
 /*
 Quy ước Output cho mọi hàm thuật toán:
 return {
