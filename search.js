@@ -85,9 +85,7 @@ function aStarSearch(grid, src, dest) {
   ];
 
   while (open.length) {
-    open.sort(function (a, b) {
-      return a.f - b.f;
-    });
+    open.sort((a, b) => a.f - b.f);
     ({ i, j } = open.shift());
 
     closed[i][j] = true;
