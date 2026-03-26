@@ -1,75 +1,104 @@
+// ==========================================
+// THUẬT TOÁN UNIFORM COST SEARCH (UCS)
+// ==========================================
+
+const grid = [
+    [0, 3, 1, 0, 0],
+    [0, 0, 1, 3, 0],
+    [1, 0, 0, 0, 1],
+    [1, 3, 1, 0, 0],
+    [1, 0, 0, 3, 0],
+];
+
+// Convert cost
+function getCost(val) {
+    if (val === 0) return 1;
+    if (val === 3) return 3;
+    return Infinity; 
+}
+
+// Neighbor
+function getNeighbors(r, c, gridMap) {
+    const rows = gridMap.length;
+    const cols = gridMap[0].length;
+    const neighbors = [];
+    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+    for (let [dr, dc] of directions) {
+        let nr = r + dr;
+        let nc = c + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && gridMap[nr][nc] !== 1) {
+            neighbors.push([nr, nc]);
+        }
+    }
+    return neighbors;
+}
+
+// Create Queue
 class PriorityQueue {
     constructor() {
         this.elements = [];
     }
-
     enqueue(item, priority) {
         this.elements.push({ item, priority });
+        // Sắp xếp để phần tử có chi phí nhỏ nhất luôn nổi lên đầu
         this.elements.sort((a, b) => a.priority - b.priority);
     }
-
     dequeue() {
         return this.elements.shift().item;
     }
-
     isEmpty() {
         return this.elements.length === 0;
     }
 }
 
-function uniformCostSearch(graph, start, goal) {
+// UCS
+function uniformCostSearchGrid(gridMap, start, goal) {
     let pq = new PriorityQueue();
+    let startKey = `${start[0]},${start[1]}`;
+    let goalKey = `${goal[0]},${goal[1]}`;
 
-    pq.enqueue([start, [start]], 0);
+    pq.enqueue({ pos: start, path: [startKey] }, 0);
 
     let minCosts = {};
-    minCosts[start] = 0;
+    minCosts[startKey] = 0;
 
     while (!pq.isEmpty()) {
-        let [currentNode, path] = pq.dequeue();
-        let currentCost = minCosts[currentNode];
+        let { pos, path } = pq.dequeue();
+        let [r, c] = pos;
+        let currentKey = `${r},${c}`;
+        let currentCost = minCosts[currentKey];
 
-        if (currentNode === goal) {
-            return {
-                path: path,
-                totalCost: currentCost
-            };
+        if (currentKey === goalKey) {
+            return { path: path, totalCost: currentCost };
         }
 
-        let neighbors = graph[currentNode];
-        for (let neighbor in neighbors) {
-            let stepCost = neighbors[neighbor];
+        let neighbors = getNeighbors(r, c, gridMap);
+        for (let [nr, nc] of neighbors) {
+            let neighborKey = `${nr},${nc}`;
+            let stepCost = getCost(gridMap[nr][nc]); 
             let newCost = currentCost + stepCost;
 
-            if (minCosts[neighbor] === undefined || newCost < minCosts[neighbor]) {
-                minCosts[neighbor] = newCost;
-
-                let newPath = [...path, neighbor]; 
-                
-                pq.enqueue([neighbor, newPath], newCost);
+            // Update
+            if (minCosts[neighborKey] === undefined || newCost < minCosts[neighborKey]) {
+                minCosts[neighborKey] = newCost;
+                let newPath = [...path, neighborKey];
+                pq.enqueue({ pos: [nr, nc], path: newPath }, newCost);
             }
         }
     }
-
     return null; 
 }
 
+// Test
+const startNode = [0, 0];
+const goalNode = [4, 4];
+const ucsResult = uniformCostSearchGrid(grid, startNode, goalNode);
 
-
-// Biểu diễn đồ thị bằng Adjacency List (Danh sách kề) chứa trọng số
-const graph = {
-    'S': { 'A': 1, 'B': 5, 'C': 15 },
-    'A': { 'G': 10 },
-    'B': { 'G': 5 },
-    'C': { 'G': 2 },
-    'G': {} 
-};
-
-const result = uniformCostSearch(graph, 'S', 'G');
-
-if (result) {
-    console.log("Đường đi ngắn nhất:", result.path.join(" -> "));
-    console.log("Tổng chi phí:", result.totalCost);
+console.log("=== KẾT QUẢ UCS ===");
+if (ucsResult) {
+    console.log(`Đường đi: [${ucsResult.path.join("] -> [")}]`);
+    console.log(`Tổng chi phí: ${ucsResult.totalCost}`);
 } else {
     console.log("Không tìm thấy đường đi!");
 }

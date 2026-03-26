@@ -1,16 +1,46 @@
-function buildPath(parentF, parentB, intersectionNode) {
+// ==========================================
+// THUẬT TOÁN BIDIRECTIONAL SEARCH
+// ==========================================
+
+const grid = [
+    [0, 3, 1, 0, 0],
+    [0, 0, 1, 3, 0],
+    [1, 0, 0, 0, 1],
+    [1, 3, 1, 0, 0],
+    [1, 0, 0, 3, 0],
+];
+
+// Neighbor
+function getNeighbors(r, c, gridMap) {
+    const rows = gridMap.length;
+    const cols = gridMap[0].length;
+    const neighbors = [];
+    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+    for (let [dr, dc] of directions) {
+        let nr = r + dr;
+        let nc = c + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && gridMap[nr][nc] !== 1) {
+            neighbors.push([nr, nc]);
+        }
+    }
+    return neighbors;
+}
+
+// Hàm nối vết đường đi từ 2 hướng lại với nhau
+function buildPathGrid(parentF, parentB, intersectionKey) {
     let path = [];
     
-    // 1. Lần ngược vết từ Điểm giao (Intersection) về Start
-    let curr = intersectionNode;
+    // 1. Lần ngược vết từ điểm chạm nhau về Start
+    let curr = intersectionKey;
     while (curr !== null) {
         path.push(curr);
         curr = parentF[curr]; 
     }
-    path.reverse(); // reverse
+    path.reverse();
 
-    // 2. Lần vết từ Điểm giao tiến về Goal
-    curr = parentB[intersectionNode]; 
+    // 2. Lần vết từ điểm chạm nhau tiến về Goal
+    curr = parentB[intersectionKey]; 
     while (curr !== null) {
         path.push(curr);
         curr = parentB[curr];
@@ -20,74 +50,70 @@ function buildPath(parentF, parentB, intersectionNode) {
 }
 
 // Bidirectional Search
-function bidirectionalSearch(graph, start, goal) {
-    if (start === goal) return [start];
+function bidirectionalSearchGrid(gridMap, start, goal) {
+    let startKey = `${start[0]},${start[1]}`;
+    let goalKey = `${goal[0]},${goal[1]}`;
 
-    
-    let queueF = [start]; // Forward
-    let queueB = [goal];  // Backward 
+    if (startKey === goalKey) return [startKey];
 
-    // Objects to save
+    let queueF = [start]; // Hàng đợi từ Start
+    let queueB = [goal];  // Hàng đợi từ Goal
+
     let parentF = {}; 
     let parentB = {}; 
     
-    parentF[start] = null;
-    parentB[goal] = null;  
+    parentF[startKey] = null;
+    parentB[goalKey] = null;  
 
-    // No way to go
     while (queueF.length > 0 && queueB.length > 0) {
-        // (FORWARD)
-        let currentF = queueF.shift(); 
-        let neighborsF = graph[currentF];
         
-        for (let i = 0; i < neighborsF.length; i++) {
-            let neighbor = neighborsF[i];
-            
-            
-            if (parentF[neighbor] === undefined) {
-                parentF[neighbor] = currentF; 
-                queueF.push(neighbor);        
+        // Forward
+        let currentF = queueF.shift();
+        let currFKey = `${currentF[0]},${currentF[1]}`;
+        let neighborsF = getNeighbors(currentF[0], currentF[1], gridMap);
+        
+        for (let [nr, nc] of neighborsF) {
+            let neighborKey = `${nr},${nc}`;
+            if (parentF[neighborKey] === undefined) {
+                parentF[neighborKey] = currFKey; 
+                queueF.push([nr, nc]);        
 
-                if (parentB[neighbor] !== undefined) {
-                    console.log("Hai đội chạm mặt tại đỉnh:", neighbor);
-                    return buildPath(parentF, parentB, neighbor);
+                // Gặp nhau
+                if (parentB[neighborKey] !== undefined) {
+                    return buildPathGrid(parentF, parentB, neighborKey);
                 }
             }
         }
-        // (BACKWARD)
-        let currentB = queueB.shift();
-        let neighborsB = graph[currentB];
-        
-        for (let i = 0; i < neighborsB.length; i++) {
-            let neighbor = neighborsB[i];
-            
-            if (parentB[neighbor] === undefined) {
-                parentB[neighbor] = currentB;
-                queueB.push(neighbor);      
 
-                if (parentF[neighbor] !== undefined) {
-                    console.log("Hai đội chạm mặt tại đỉnh:", neighbor);
-                    return buildPath(parentF, parentB, neighbor);
+        // Backward
+        let currentB = queueB.shift();
+        let currBKey = `${currentB[0]},${currentB[1]}`;
+        let neighborsB = getNeighbors(currentB[0], currentB[1], gridMap);
+        
+        for (let [nr, nc] of neighborsB) {
+            let neighborKey = `${nr},${nc}`;
+            if (parentB[neighborKey] === undefined) {
+                parentB[neighborKey] = currBKey;
+                queueB.push([nr, nc]);      
+
+                // Gặp nhau
+                if (parentF[neighborKey] !== undefined) {
+                    return buildPathGrid(parentF, parentB, neighborKey);
                 }
             }
         }
     }
-
     return null;
 }
 
+// Test
+const startNode = [0, 0];
+const goalNode = [4, 4];
+const biResult = bidirectionalSearchGrid(grid, startNode, goalNode);
 
-// Undirected Graph
-const graph = {
-    'S': ['A', 'D'],
-    'A': ['S', 'B'],
-    'B': ['A', 'C'],
-    'C': ['B', 'G'], // Đường S -> A -> B -> C -> G
-    'D': ['S', 'E'],
-    'E': ['D', 'F'],
-    'F': ['E', 'G'], // Đường S -> D -> E -> F -> G
-    'G': ['C', 'F']
-};
-
-const path = bidirectionalSearch(graph, 'S', 'G');
-console.log("Đường đi tìm được:", path.join(" -> "));
+console.log("=== KẾT QUẢ BIDIRECTIONAL SEARCH ===");
+if (biResult) {
+    console.log(`Đường đi: [${biResult.join("] -> [")}]`);
+} else {
+    console.log("Không tìm thấy đường đi!");
+}
