@@ -1,7 +1,8 @@
 const EMPTY = 0;
 const WALL = 1;
 const START = 2;
-const GOAL = 3;
+const SWAMP = 3
+const GOAL = 4;
 
 
 /* 

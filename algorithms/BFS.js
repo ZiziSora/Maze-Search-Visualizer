@@ -45,19 +45,30 @@ const BFS = (maze, start, goal) => {
                 }
             }
         }
-
-
-
-
-
     }
+
+    let finalCost = 0;
+    if (path.length > 0) {
+        for (let i = 1; i < path.length; i++) {
+            let [px, py] = path[i];
+            let terrainType = maze[px][py];
+            
+            if (terrainType === 3) {
+                finalCost += 3; // Đầm lầy tốn 3 chi phí
+
+            } else {
+                finalCost += 1; // Đường trống (0) hoặc đích (2,3) tốn 1 chi phí
+            }
+        }
+    }
+
 
     return {
         path: path,
         exploredNodes: exploredNodes,
-        cost: path.length > 0 ? path.length - 1: cost,
+        cost: finalCost,
         time: performance.now() - timeStart
     }
 }
 
-// export { BFS }
+export { BFS }

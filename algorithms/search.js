@@ -202,3 +202,6 @@ function beamSearch(grid, src, dest, k) {
 
   console.log("Beam Search: No path");
 }
+
+
+export default {beamSearch, aStarSearch}

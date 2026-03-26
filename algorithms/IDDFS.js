@@ -5,11 +5,11 @@
 const IDDFS = (maze, start, goal) => {
     let timeStart = performance.now();
     let maxLength = maze.length * maze[0].length;
-    let exploredNodes = []; 
+    let exploredNodes = [];
     let path = [];
 
 
-    const DLS = (src, target, limit, visited, currentPath, exploredNodes) => {
+    const DLS = (src, target, limit, visited, currentPath) => {
 
         let [x, y] = src;
         exploredNodes.push([x, y]);
@@ -33,7 +33,7 @@ const IDDFS = (maze, start, goal) => {
                     visited.add(key);
                     currentPath.push([nx, ny]);
 
-                    if (DLS([nx, ny], target, limit - 1, visited, currentPath, exploredNodes)) {
+                    if (DLS([nx, ny], target, limit - 1, visited, currentPath)) {
                         return true;
                     }
 
@@ -50,17 +50,31 @@ const IDDFS = (maze, start, goal) => {
         visited.add(`${start[0]},${start[1]}`);
         let currentPath = [start]
 
-        if (DLS(start, goal, limit, visited, currentPath, exploredNodes)) {
+        if (DLS(start, goal, limit, visited, currentPath)) {
             break;
+        }
+    }
+
+    let finalCost = 0;
+    if (path.length > 0) {
+        for (let i = 1; i < path.length; i++) {
+            let [px, py] = path[i];
+            let terrainType = maze[px][py];
+
+            if (terrainType === 3) {
+                finalCost += 3; // Đầm lầy
+            } else {
+                finalCost += 1; // Đường trống
+            }
         }
     }
 
     return {
         path: path,
         exploredNodes: exploredNodes,
-        cost: path.length > 0 ? path.length - 1: 0,
+        cost: finalCost,
         time: performance.now() - timeStart
     }
 }
 
-export {IDDFS};
+export { IDDFS };
