@@ -1,8 +1,9 @@
 const grid = [
-  [0, 0, 1, 0],
-  [0, 0, 1, 0],
-  [1, 0, 0, 0],
-  [1, 1, 0, 0],
+  [0, 3, 1, 0, 0],
+  [0, 0, 1, 3, 0],
+  [1, 0, 0, 0, 1],
+  [1, 3, 1, 0, 0],
+  [1, 0, 0, 3, 0],
 ];
 
 const ROWS = grid.length;
@@ -18,17 +19,17 @@ function isValid(x, y) {
   return x >= 0 && y >= 0 && x < ROWS && y < COLS && grid[x][y] !== 1;
 }
 
-function printPath(path) {
+function printPath(path, costObj) {
   if (!path || path.length === 0) {
     console.log("  No path found.");
     return;
   }
-  console.log("  Path (" + path.length + " steps):");
+  console.log("  Path (" + path.length + " steps): cost " + costObj.value);
   console.log("  " + path.map(([x, y]) => `(${x},${y})`).join(" → "));
 }
 
 // DFS
-function DFSAlgorithm(startx, starty, endx, endy) {
+function DFSAlgorithm(startx, starty, endx, endy, costObj) {
   const visited = new Set();
 
   function dfsRecurse(x, y, path) {
@@ -38,7 +39,7 @@ function DFSAlgorithm(startx, starty, endx, endy) {
 
     visited.add(key);
     path.push([x, y]);
-    console.log(`  DFS visit: (${x},${y})`);
+    costObj.value += (grid[x][y] === 3 ? 3 : 1);
 
     if (x === endx && y === endy) return path;
 
@@ -47,7 +48,10 @@ function DFSAlgorithm(startx, starty, endx, endy) {
       if (result) return result;
     }
 
-    path.pop();
+    // Fix #1: subtract the cost of the cell being removed
+    const popped = path.pop();
+    costObj.value -= (grid[popped[0]][popped[1]] === 3 ? 3 : 1);
+    visited.delete(key);
     return null;
   }
 
@@ -55,10 +59,11 @@ function DFSAlgorithm(startx, starty, endx, endy) {
 }
 
 // IDA*
-function IDAStar(startx, starty, endx, endy) {
+function IDAStar(startx, starty, endx, endy, costObj) {
+  costObj.value += (grid[startx][starty] === 3 ? 3 : 1);
+
   function search(x, y, g, threshold, path, visited) {
     const f = g + heuristic(x, y, endx, endy);
-
     if (f > threshold) return f;
     if (x === endx && y === endy) return "FOUND";
 
@@ -70,15 +75,19 @@ function IDAStar(startx, starty, endx, endy) {
       const key = `${nx},${ny}`;
 
       if (isValid(nx, ny) && !visited.has(key)) {
+        const moveCost = grid[nx][ny] === 3 ? 3 : 1;
+
         visited.add(key);
         path.push([nx, ny]);
+        costObj.value += moveCost;
 
-        const result = search(nx, ny, g + 1, threshold, path, visited);
+        const result = search(nx, ny, g + moveCost, threshold, path, visited);
 
         if (result === "FOUND") return "FOUND";
         if (result < min) min = result;
 
         path.pop();
+        costObj.value -= moveCost;
         visited.delete(key);
       }
     }
@@ -91,17 +100,12 @@ function IDAStar(startx, starty, endx, endy) {
 
   while (true) {
     iteration++;
-    console.log(`  IDA* iteration ${iteration}: threshold = ${threshold}`);
-
     const path    = [[startx, starty]];
     const visited = new Set([`${startx},${starty}`]);
-
-    const result = search(startx, starty, 0, threshold, path, visited);
+    const result  = search(startx, starty, 0, threshold, path, visited);
 
     if (result === "FOUND") return path;
-
     if (result === Infinity) return null;
-
     threshold = result;
   }
 }
@@ -111,17 +115,17 @@ function solve(algorithm, startx, starty, endx, endy) {
   console.log(`\nRunning ${algorithm.toUpperCase()} from (${startx},${starty}) to (${endx},${endy})`);
   console.log("─".repeat(45));
 
-  let path;
+  let path, costObj = {value: 0};
   if (algorithm === "dfs") {
-    path = DFSAlgorithm(startx, starty, endx, endy);
+    path = DFSAlgorithm(startx, starty, endx, endy, costObj);
   } else if (algorithm === "idaStar") {
-    path = IDAStar(startx, starty, endx, endy);
+    path = IDAStar(startx, starty, endx, endy, costObj);
   } else {
     console.log("Unknown algorithm. Choose 'dfs' or 'idaStar'.");
     return;
   }
 
-  printPath(path);
+  printPath(path, costObj);
 }
 
 solve("dfs", 0, 0, 3, 3);
