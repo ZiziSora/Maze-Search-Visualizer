@@ -6,88 +6,93 @@ const grid = [
   [1, 0, 0, 3, 0],
 ];
 
-const ROWS = grid.length;
-const COLS = grid[0].length;
-
 const DIRECTIONS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
-function heuristic(x, y, endx, endy) {
-  return Math.abs(x - endx) + Math.abs(y - endy);
-}
-
-function isValid(x, y) {
-  return x >= 0 && y >= 0 && x < ROWS && y < COLS && grid[x][y] !== 1;
-}
-
-function printPath(path, costObj) {
-  if (!path || path.length === 0) {
-    console.log("  No path found.");
-    return;
-  }
-  console.log("  Path (" + path.length + " steps): cost " + costObj.value);
-  console.log("  " + path.map(([x, y]) => `(${x},${y})`).join(" → "));
-}
-
 // DFS
-function DFSAlgorithm(startx, starty, endx, endy, costObj) {
+const DFS = (maze, start, goal) => {
+  const path = [];
+  const exploredNodes = [];
   const visited = new Set();
+  let cost = 0;
+  const timeStart = performance.now();
 
-  function dfsRecurse(x, y, path) {
-    if (!isValid(x, y)) return null;
+  function isValid(x, y) {
+    return x >= 0 && y >= 0 && x < maze.length && y < maze[0].length && maze[x][y] !== 1;
+  }
+
+  function dfsRecurse(x, y, currentPath, currentCost) {
+    if (!isValid(x, y)) return false;
     const key = `${x},${y}`;
-    if (visited.has(key)) return null;
+    if (visited.has(key)) return false;
 
     visited.add(key);
-    path.push([x, y]);
-    costObj.value += (grid[x][y] === 3 ? 3 : 1);
+    exploredNodes.push([x, y]);
+    currentPath.push([x, y]);
+    const moveCost = maze[x][y] === 3 ? 3 : 1;
+    currentCost[0] += moveCost;
 
-    if (x === endx && y === endy) return path;
-
-    for (const [dx, dy] of DIRECTIONS) {
-      const result = dfsRecurse(x + dx, y + dy, path);
-      if (result) return result;
+    if (x === goal[0] && y === goal[1]) {
+      cost = currentCost[0];
+      path.push(...currentPath);
+      return true;
     }
 
-    // Fix #1: subtract the cost of the cell being removed
-    const popped = path.pop();
-    costObj.value -= (grid[popped[0]][popped[1]] === 3 ? 3 : 1);
+    for (const [dx, dy] of DIRECTIONS) {
+      if (dfsRecurse(x + dx, y + dy, currentPath, currentCost)) return true;
+    }
+
+    currentPath.pop();
+    currentCost[0] -= moveCost;
     visited.delete(key);
-    return null;
+    return false;
   }
 
-  return dfsRecurse(startx, starty, []);
-}
+  dfsRecurse(start[0], start[1], [], [0]);
+
+  return {
+    path,
+    exploredNodes,
+    cost,
+    time: performance.now() - timeStart,
+  };
+};
 
 // IDA*
-function IDAStar(startx, starty, endx, endy, costObj) {
-  costObj.value += (grid[startx][starty] === 3 ? 3 : 1);
+const IDAStar = (maze, start, goal) => {
+  const exploredNodes = [];
+  let cost = 0;
+  const timeStart = performance.now();
+
+  function isValid(x, y) {
+    return x >= 0 && y >= 0 && x < maze.length && y < maze[0].length && maze[x][y] !== 1;
+  }
+
+  function heuristic(x, y) {
+    return Math.abs(x - goal[0]) + Math.abs(y - goal[1]);
+  }
 
   function search(x, y, g, threshold, path, visited) {
-    const f = g + heuristic(x, y, endx, endy);
+    exploredNodes.push([x, y]);
+    const f = g + heuristic(x, y);
     if (f > threshold) return f;
-    if (x === endx && y === endy) return "FOUND";
+    if (x === goal[0] && y === goal[1]) return "FOUND";
 
     let min = Infinity;
 
     for (const [dx, dy] of DIRECTIONS) {
-      const nx = x + dx;
-      const ny = y + dy;
+      const nx = x + dx, ny = y + dy;
       const key = `${nx},${ny}`;
 
       if (isValid(nx, ny) && !visited.has(key)) {
-        const moveCost = grid[nx][ny] === 3 ? 3 : 1;
-
+        const moveCost = maze[nx][ny] === 3 ? 3 : 1;
         visited.add(key);
         path.push([nx, ny]);
-        costObj.value += moveCost;
 
         const result = search(nx, ny, g + moveCost, threshold, path, visited);
-
         if (result === "FOUND") return "FOUND";
         if (result < min) min = result;
 
         path.pop();
-        costObj.value -= moveCost;
         visited.delete(key);
       }
     }
@@ -95,38 +100,31 @@ function IDAStar(startx, starty, endx, endy, costObj) {
     return min;
   }
 
-  let threshold = heuristic(startx, starty, endx, endy);
-  let iteration = 0;
+  let threshold = heuristic(start[0], start[1]);
+  let foundPath = null;
 
   while (true) {
-    iteration++;
-    const path    = [[startx, starty]];
-    const visited = new Set([`${startx},${starty}`]);
-    const result  = search(startx, starty, 0, threshold, path, visited);
+    const path = [start];
+    const visited = new Set([`${start[0]},${start[1]}`]);
+    const result = search(start[0], start[1], 0, threshold, path, visited);
 
-    if (result === "FOUND") return path;
-    if (result === Infinity) return null;
+    if (result === "FOUND") {
+      foundPath = path;
+      cost = foundPath.reduce((sum, [x, y]) => sum + (maze[x][y] === 3 ? 3 : 1), 0) - 1;
+      break;
+    }
+    if (result === Infinity) break;
     threshold = result;
   }
-}
 
-// RUN
-function solve(algorithm, startx, starty, endx, endy) {
-  console.log(`\nRunning ${algorithm.toUpperCase()} from (${startx},${starty}) to (${endx},${endy})`);
-  console.log("─".repeat(45));
+  return {
+    path: foundPath ?? [],
+    exploredNodes,
+    cost,
+    time: performance.now() - timeStart,
+  };
+};
 
-  let path, costObj = {value: 0};
-  if (algorithm === "dfs") {
-    path = DFSAlgorithm(startx, starty, endx, endy, costObj);
-  } else if (algorithm === "idaStar") {
-    path = IDAStar(startx, starty, endx, endy, costObj);
-  } else {
-    console.log("Unknown algorithm. Choose 'dfs' or 'idaStar'.");
-    return;
-  }
-
-  printPath(path, costObj);
-}
-
-solve("dfs", 0, 0, 3, 3);
-solve("idaStar", 0, 0, 3, 3);
+// RUN — just console.log the result object directly
+console.log(DFS(grid, [0, 0], [3, 3]));
+console.log(IDAStar(grid, [0, 0], [3, 3]));
