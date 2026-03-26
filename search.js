@@ -35,8 +35,6 @@ function printPath(path) {
   console.log(path.map(p => `[${p[0]}, ${p[1]}]`).join(" -> "));
 }
 
-function printCost(cost) {}
-
 // ================= A* =================
 
 function tracePath(cellDetails, dest) {
@@ -49,24 +47,24 @@ function tracePath(cellDetails, dest) {
   }
   path.push([row, col]);
   path.reverse();
-  console.log("Path:");
-  printPath(path);
-  console.log("Cost:", cellDetails[dest[0]][dest[1]].g);
+  return path;
 }
 
 function aStarSearch(grid, src, dest) {
-  var closed = [];
-  for (var x = 0; x < grid.length; x++) {
+  const closed = [];
+  const exploredNodes = [];
+  let timeStart = performance.now();
+  for (let x = 0; x < grid.length; x++) {
     closed[x] = [];
-    for (var y = 0; y < grid[0].length; y++) {
+    for (let y = 0; y < grid[0].length; y++) {
       closed[x][y] = false;
     }
   }
 
-  var cell = [];
-  for (var x = 0; x < grid.length; x++) {
+  const cell = [];
+  for (let x = 0; x < grid.length; x++) {
     cell[x] = [];
-    for (var y = 0; y < grid[0].length; y++) {
+    for (let y = 0; y < grid[0].length; y++) {
       cell[x][y] = new Cell();
     }
   }
@@ -85,10 +83,24 @@ function aStarSearch(grid, src, dest) {
   ];
 
   while (open.length) {
-    open.sort((a, b) => a.f - b.f);
-    ({ i, j } = open.shift());
+    open.sort(function (a, b) {
+      return a.f - b.f;
+    });
 
+    ({ i, j } = open.shift());
+    if (closed[i][j]) continue;
     closed[i][j] = true;
+    exploredNodes.push([i, j]);
+    if (isDestination(i, j, dest)) {
+      let path = tracePath(cell, dest);
+      let finalCost = cell[i][j].g;
+      return {
+        path,
+        exploredNodes,
+        finalCost,
+        time: performance.now() - timeStart
+      };
+    }
 
     for (let [di, dj] of dirs) {
       let ni = i + di,
@@ -102,9 +114,7 @@ function aStarSearch(grid, src, dest) {
       let hNew = calculateH(ni, nj, dest);
       let fNew = gNew + hNew;
 
-      if (cell[ni][nj].f > fNew || isDestination(ni, nj, dest)) {
-        open.push({ f: fNew, i: ni, j: nj });
-
+      if (cell[ni][nj].f > fNew) {
         cell[ni][nj] = {
           f: fNew,
           g: gNew,
@@ -112,9 +122,7 @@ function aStarSearch(grid, src, dest) {
           parent_i: i,
           parent_j: j
         };
-        if (isDestination(ni, nj, dest)) {
-          return tracePath(cell, dest);
-        }
+        open.push({ f: fNew, i: ni, j: nj });
       }
     }
   }
@@ -125,7 +133,9 @@ function aStarSearch(grid, src, dest) {
 // ================= BEAM SEARCH =================
 
 function beamSearch(grid, src, dest, k) {
-  let closed = [];
+  const closed = [];
+  const exploredNodes = [];
+  let timeStart = performance.now();
   for (let i = 0; i < grid.length; i++) {
     closed[i] = [];
     for (let j = 0; j < grid[0].length; j++) {
@@ -133,7 +143,7 @@ function beamSearch(grid, src, dest, k) {
     }
   }
 
-  let cell = [];
+  const cell = [];
   for (let i = 0; i < grid.length; i++) {
     cell[i] = [];
     for (let j = 0; j < grid[0].length; j++) {
@@ -143,13 +153,7 @@ function beamSearch(grid, src, dest, k) {
 
   let [i, j] = src;
 
-  cell[i][j] = {
-    f: 0,
-    g: 0,
-    h: 0,
-    parent_i: i,
-    parent_j: j
-  };
+  cell[i][j] = { f: 0, g: 0, h: 0, parent_i: i, parent_j: j };
 
   let open = [{ f: 0, i, j }];
 
@@ -165,9 +169,19 @@ function beamSearch(grid, src, dest, k) {
 
     for (let node of open) {
       let { i, j } = node;
-
+      if (closed[i][j]) continue;
       closed[i][j] = true;
-
+      exploredNodes.push([i, j]);
+      if (isDestination(i, j, dest)) {
+        let path = tracePath(cell, dest);
+        let finalCost = cell[i][j].g;
+        return {
+          path,
+          exploredNodes,
+          finalCost,
+          time: performance.now() - timeStart
+        };
+      }
       for (let [di, dj] of dirs) {
         let ni = i + di,
           nj = j + dj;
@@ -179,7 +193,7 @@ function beamSearch(grid, src, dest, k) {
         let hNew = calculateH(ni, nj, dest);
         let fNew = gNew + hNew;
 
-        if (cell[ni][nj].f > fNew || isDestination(ni, nj, dest)) {
+        if (cell[ni][nj].f > fNew) {
           cell[ni][nj] = {
             f: fNew,
             g: gNew,
@@ -187,18 +201,46 @@ function beamSearch(grid, src, dest, k) {
             parent_i: i,
             parent_j: j
           };
-          if (isDestination(ni, nj, dest)) {
-            return tracePath(cell, dest);
-          }
           newOpen.push({ f: fNew, i: ni, j: nj });
         }
       }
     }
 
-    newOpen.sort((a, b) => a.f - b.f);
+    newOpen.sort(function (a, b) {
+      return a.f - b.f;
+    });
 
     open = newOpen.slice(0, k);
   }
 
   console.log("Beam Search: No path");
 }
+
+//TEST
+function test() {
+  let grid = [
+    [0, 3, 1, 0, 0],
+    [0, 0, 1, 3, 0],
+    [1, 0, 0, 0, 1],
+    [1, 3, 1, 0, 0],
+    [1, 0, 0, 3, 0]
+  ];
+
+  let src = [0, 0];
+  let dest = [3, 3];
+
+  let result = aStarSearch(grid, src, dest);
+  let resultBeam = beamSearch(grid, src, dest, 1);
+  if (result) {
+    console.log(result);
+  } else {
+    console.log("No path found");
+  }
+  if (resultBeam) {
+    console.log(resultBeam);
+  } else {
+    console.log("No path found");
+  }
+}
+
+test();
