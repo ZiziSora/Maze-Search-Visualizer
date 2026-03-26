@@ -1,5 +1,5 @@
 // ==========================================
-// THUẬT TOÁN BIDIRECTIONAL SEARCH
+// THUẬT TOÁN BIDIRECTIONAL SEARCH (UPDATED)
 // ==========================================
 
 const grid = [
@@ -27,7 +27,7 @@ function getNeighbors(r, c, gridMap) {
     return neighbors;
 }
 
-// Hàm nối vết đường đi từ 2 hướng lại với nhau
+// Hàm nối vết đường đi từ 2 hướng lại với nhau và convert ra mảng [r, c]
 function buildPathGrid(parentF, parentB, intersectionKey) {
     let path = [];
     
@@ -41,20 +41,29 @@ function buildPathGrid(parentF, parentB, intersectionKey) {
 
     // 2. Lần vết từ điểm chạm nhau tiến về Goal
     curr = parentB[intersectionKey]; 
+    // Bỏ qua node giao điểm để không bị lặp
+    curr = parentB[curr]; 
     while (curr !== null) {
         path.push(curr);
         curr = parentB[curr];
     }
     
-    return path;
+    // Convert từ chuỗi "r,c" sang mảng [r, c]
+    return path.map(key => key.split(',').map(Number));
 }
 
 // Bidirectional Search
 function bidirectionalSearchGrid(gridMap, start, goal) {
+    const startTime = performance.now(); // Bắt đầu đếm giờ
+    let exploredNodes = []; // Mảng lưu các node đã duyệt
+
     let startKey = `${start[0]},${start[1]}`;
     let goalKey = `${goal[0]},${goal[1]}`;
 
-    if (startKey === goalKey) return [startKey];
+    if (startKey === goalKey) {
+        const endTime = performance.now();
+        return { path: [start], exploredNodes: [start], cost: 0, time: endTime - startTime };
+    }
 
     let queueF = [start]; // Hàng đợi từ Start
     let queueB = [goal];  // Hàng đợi từ Goal
@@ -69,6 +78,8 @@ function bidirectionalSearchGrid(gridMap, start, goal) {
         
         // Forward
         let currentF = queueF.shift();
+        exploredNodes.push(currentF); // Đưa node vào mảng đã duyệt
+        
         let currFKey = `${currentF[0]},${currentF[1]}`;
         let neighborsF = getNeighbors(currentF[0], currentF[1], gridMap);
         
@@ -80,13 +91,22 @@ function bidirectionalSearchGrid(gridMap, start, goal) {
 
                 // Gặp nhau
                 if (parentB[neighborKey] !== undefined) {
-                    return buildPathGrid(parentF, parentB, neighborKey);
+                    const finalPath = buildPathGrid(parentF, parentB, neighborKey);
+                    const endTime = performance.now();
+                    return {
+                        path: finalPath,
+                        exploredNodes: exploredNodes,
+                        cost: finalPath.length - 1, // Chi phí tính bằng số bước đi
+                        time: endTime - startTime
+                    };
                 }
             }
         }
 
         // Backward
         let currentB = queueB.shift();
+        exploredNodes.push(currentB); // Đưa node vào mảng đã duyệt
+        
         let currBKey = `${currentB[0]},${currentB[1]}`;
         let neighborsB = getNeighbors(currentB[0], currentB[1], gridMap);
         
@@ -98,22 +118,28 @@ function bidirectionalSearchGrid(gridMap, start, goal) {
 
                 // Gặp nhau
                 if (parentF[neighborKey] !== undefined) {
-                    return buildPathGrid(parentF, parentB, neighborKey);
+                    const finalPath = buildPathGrid(parentF, parentB, neighborKey);
+                    const endTime = performance.now();
+                    return {
+                        path: finalPath,
+                        exploredNodes: exploredNodes,
+                        cost: finalPath.length - 1,
+                        time: endTime - startTime
+                    };
                 }
             }
         }
     }
-    return null;
+    
+    // Nếu không tìm thấy đường đi
+    const endTime = performance.now();
+    return { path: [], exploredNodes: exploredNodes, cost: 0, time: endTime - startTime };
 }
 
 // Test
-const startNode = [0, 0];
-const goalNode = [4, 4];
-const biResult = bidirectionalSearchGrid(grid, startNode, goalNode);
+const startNodeBi = [0, 0];
+const goalNodeBi = [4, 4];
+const biResult = bidirectionalSearchGrid(grid, startNodeBi, goalNodeBi);
 
 console.log("=== KẾT QUẢ BIDIRECTIONAL SEARCH ===");
-if (biResult) {
-    console.log(`Đường đi: [${biResult.join("] -> [")}]`);
-} else {
-    console.log("Không tìm thấy đường đi!");
-}
+console.log(biResult);

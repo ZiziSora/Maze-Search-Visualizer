@@ -1,5 +1,5 @@
 // ==========================================
-// THUẬT TOÁN UNIFORM COST SEARCH (UCS)
+// THUẬT TOÁN UNIFORM COST SEARCH (UCS) (UPDATED)
 // ==========================================
 
 const grid = [
@@ -54,6 +54,9 @@ class PriorityQueue {
 
 // UCS
 function uniformCostSearchGrid(gridMap, start, goal) {
+    const startTime = performance.now(); // Bắt đầu đếm giờ
+    let exploredNodes = []; // Mảng lưu các node đã duyệt
+
     let pq = new PriorityQueue();
     let startKey = `${start[0]},${start[1]}`;
     let goalKey = `${goal[0]},${goal[1]}`;
@@ -65,12 +68,25 @@ function uniformCostSearchGrid(gridMap, start, goal) {
 
     while (!pq.isEmpty()) {
         let { pos, path } = pq.dequeue();
+        
+        // Push toạ độ hiện tại vào exploredNodes
+        exploredNodes.push(pos);
+        
         let [r, c] = pos;
         let currentKey = `${r},${c}`;
         let currentCost = minCosts[currentKey];
 
         if (currentKey === goalKey) {
-            return { path: path, totalCost: currentCost };
+            const endTime = performance.now();
+            // Convert path từ mảng string ("r,c") sang mảng số ([r, c])
+            const finalPath = path.map(p => p.split(',').map(Number));
+            
+            return {
+                path: finalPath,
+                exploredNodes: exploredNodes,
+                cost: currentCost,
+                time: endTime - startTime
+            };
         }
 
         let neighbors = getNeighbors(r, c, gridMap);
@@ -87,18 +103,16 @@ function uniformCostSearchGrid(gridMap, start, goal) {
             }
         }
     }
-    return null; 
+    
+    // Nếu không tìm thấy đường đi
+    const endTime = performance.now();
+    return { path: [], exploredNodes: exploredNodes, cost: 0, time: endTime - startTime }; 
 }
 
 // Test
-const startNode = [0, 0];
-const goalNode = [4, 4];
-const ucsResult = uniformCostSearchGrid(grid, startNode, goalNode);
+const startNodeUCS = [0, 0];
+const goalNodeUCS = [4, 4];
+const ucsResult = uniformCostSearchGrid(grid, startNodeUCS, goalNodeUCS);
 
 console.log("=== KẾT QUẢ UCS ===");
-if (ucsResult) {
-    console.log(`Đường đi: [${ucsResult.path.join("] -> [")}]`);
-    console.log(`Tổng chi phí: ${ucsResult.totalCost}`);
-} else {
-    console.log("Không tìm thấy đường đi!");
-}
+console.log(ucsResult);
