@@ -125,6 +125,5 @@ const IDAStar = (maze, start, goal) => {
   };
 };
 
-// RUN — just console.log the result object directly
 console.log(DFS(grid, [0, 0], [3, 3]));
 console.log(IDAStar(grid, [0, 0], [3, 3]));
