@@ -1,14 +1,15 @@
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect } from "react";
 import React from "react";
-import { DFSWithHistory } from "./SearchAlgorithm/Algorithms";
 import { useImperativeHandle, forwardRef } from 'react';
 
+import { DFS } from "./SearchAlgorithm/DFSNEW";
+import { IDAStar } from "./SearchAlgorithm/IDAstar";
 
-// ─── Maze Generation ────────────────────────────────────────────────────────
+// ─── Maze Generation ─────────────────────────────────────────────────────────
+
 export function generateMaze(numCells, costDensity = 0.18, seed = 42) {
   const size = 2 * numCells + 1;
 
-  // Seeded PRNG (mulberry32) so results are deterministic per seed
   let s = seed >>> 0;
   const rand = () => {
     s = Math.imul(s ^ (s >>> 15), s | 1);
@@ -17,35 +18,20 @@ export function generateMaze(numCells, costDensity = 0.18, seed = 42) {
   };
   const randInt = (n) => Math.floor(rand() * n);
 
-  // Fill everything with walls
   const grid = Array.from({ length: size }, () => new Array(size).fill(1));
+  const visit = Array.from({ length: numCells }, () => new Array(numCells).fill(false));
 
-  // Carve out logical cell positions (odd row, odd col)
-  const visit = Array.from({ length: numCells }, () =>
-    new Array(numCells).fill(false)
-  );
-
-  // DFS stack-based backtracker
   const stack = [];
   const startR = randInt(numCells);
   const startC = randInt(numCells);
   visit[startR][startC] = true;
   stack.push([startR, startC]);
-
-  // Mark start cell as open
   grid[2 * startR + 1][2 * startC + 1] = 0;
 
-  const DIRS = [
-    [-1, 0],
-    [1, 0],
-    [0, -1],
-    [0, 1],
-  ];
+  const DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
   while (stack.length > 0) {
     const [cr, cc] = stack[stack.length - 1];
-
-    // Shuffle neighbours
     const shuffled = [...DIRS].sort(() => rand() - 0.5);
     let moved = false;
 
@@ -55,14 +41,8 @@ export function generateMaze(numCells, costDensity = 0.18, seed = 42) {
       if (nr < 0 || nr >= numCells || nc < 0 || nc >= numCells) continue;
       if (visit[nr][nc]) continue;
 
-      // Carve: open the wall between (cr,cc) and (nr,nc)
-      const wallR = 2 * cr + 1 + dr;
-      const wallC = 2 * cc + 1 + dc;
-      grid[wallR][wallC] = 0;
-
-      // Open the new cell
+      grid[2 * cr + 1 + dr][2 * cc + 1 + dc] = 0;
       grid[2 * nr + 1][2 * nc + 1] = 0;
-
       visit[nr][nc] = true;
       stack.push([nr, nc]);
       moved = true;
@@ -85,10 +65,17 @@ export function generateMaze(numCells, costDensity = 0.18, seed = 42) {
 
 // ─── Canvas Renderer ─────────────────────────────────────────────────────────
 
-const CELL_COLORS = {
-  1: "#1a1a2e", // wall  – deep navy
-  0: "#f0ede8", // path  – warm off-white
-  3: "#38b2ac", // muddy – teal
+export const CELL_COLORS = {
+  1: "#1a1a2e",  // wall  – deep navy
+  0: "#f5f0eb",  // path  – warm off-white
+  3: "#2dd4bf",  // muddy – teal
+};
+
+// Visit / backtrack / path colors for the animation overlay
+export const STEP_COLORS = {
+  visit:     "rgba(99, 179, 237, 0.65)",  // soft blue
+  backtrack: "rgba(252, 129, 74, 0.45)",  // soft orange
+  target:    "rgba(72, 199, 142, 0.9)",   // bright green
 };
 
 const CANVAS_PX = 600;
@@ -102,8 +89,7 @@ export function drawMaze(ctx, grid) {
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const val = grid[r][c];
-      ctx.fillStyle = CELL_COLORS[val] ?? "#ffffff";
+      ctx.fillStyle = CELL_COLORS[grid[r][c]] ?? "#ffffff";
       ctx.fillRect(
         Math.round(c * cellPx),
         Math.round(r * cellPx),
@@ -112,20 +98,43 @@ export function drawMaze(ctx, grid) {
       );
     }
   }
+
+  // Draw start marker (top-left open cell)
+  drawMarker(ctx, 1, 1, cellPx, "#22c55e", "S");
+  // Draw end marker (bottom-right open cell)
+  const end = rows - 2;
+  drawMarker(ctx, end, end, cellPx, "#ef4444", "E");
+}
+
+function drawMarker(ctx, r, c, cellPx, color, label) {
+  const x = Math.round(c * cellPx);
+  const y = Math.round(r * cellPx);
+  const size = Math.ceil(cellPx);
+
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, size, size);
+
+  // Only draw label if cells are big enough to be readable
+  if (cellPx >= 10) {
+    ctx.fillStyle = "#fff";
+    ctx.font = `bold ${Math.max(8, Math.floor(cellPx * 0.65))}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x + size / 2, y + size / 2);
+  }
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
+
 const MazeGenerator = forwardRef(({ grid }, ref) => {
   const canvasRef = useRef(null);
 
-  // This gives the parent access to the actual canvas DOM element
   useImperativeHandle(ref, () => canvasRef.current);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    drawMaze(ctx, grid); // Draws the initial walls/paths
+    drawMaze(canvas.getContext("2d"), grid);
   }, [grid]);
 
   return (
@@ -138,6 +147,8 @@ const MazeGenerator = forwardRef(({ grid }, ref) => {
         width: "100%",
         maxWidth: CANVAS_PX,
         imageRendering: "pixelated",
+        borderRadius: "8px",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.18)",
       }}
     />
   );
@@ -145,25 +156,35 @@ const MazeGenerator = forwardRef(({ grid }, ref) => {
 
 export default MazeGenerator;
 
-// ─── Animation ───────────────────────────────────────────────────────────────
-export function solveAndAnimate(algoName, grid, canvas, progressRef, stepsRef, speed, onComplete) {
+// ─── Solve + Animate ─────────────────────────────────────────────────────────
+
+// speed: 1 (slowest) → 51 (fastest). Converted to ms delay: higher speed = shorter interval.
+export function solveAndAnimate(algoName, grid, canvas, progressRef, stepsRef, speed, onStats, onComplete) {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   const rows = grid.length;
   const cellSize = CANVAS_PX / rows;
 
-  // 1. If starting fresh, get history and clear the canvas
   if (progressRef.current === 0) {
-    drawMaze(ctx, grid); 
-    
+    drawMaze(ctx, grid);
+
     if (algoName === 'DFS') {
-      stepsRef.current = DFSWithHistory(1, 1, rows - 2, rows - 2, grid);
+      console.log("Running DFS");
+      const result = DFS(grid, [1, 1], [rows - 2, rows - 2]);
+      stepsRef.current = result.history;
+      if (onStats) onStats({ visitedCount: result.exploredNodes.length, pathCost: result.cost, time: result.time });
+    } else if (algoName === "IDA*") {
+      console.log("Running IDA*");
+      const result = IDAStar(grid, [1, 1], [rows - 2, rows - 2]);
+      stepsRef.current = result.history;
+      if (onStats) onStats({ visitedCount: result.exploredNodes.length, pathCost: result.cost, time: result.time });
     }
   }
 
-  let steps = stepsRef.current;
+  const steps = stepsRef.current;
+  // Invert speed so slider feels natural: higher value = faster = shorter delay
+  const delayMs = Math.max(1, Math.round(1050 - speed * 20));
 
-  // 2. Animate the steps using progressRef.current instead of i
   const interval = setInterval(() => {
     if (progressRef.current >= steps.length) {
       clearInterval(interval);
@@ -172,20 +193,16 @@ export function solveAndAnimate(algoName, grid, canvas, progressRef, stepsRef, s
     }
 
     const { r, c, type } = steps[progressRef.current];
-    
-    // Pick color based on step type
-    ctx.fillStyle = type === 'visit' ? "rgba(0, 191, 255, 0.6)" : "rgba(255, 100, 100, 0.4)";
-    
-    // Draw on top of the existing maze
+    ctx.fillStyle = STEP_COLORS[type] ?? STEP_COLORS.visit;
     ctx.fillRect(
       Math.round(c * cellSize),
       Math.round(r * cellSize),
       Math.ceil(cellSize),
       Math.ceil(cellSize)
     );
-    
-    progressRef.current++; // Increment the global memory index
-  }, speed); // Uses the speed slider value from App.jsx
+
+    progressRef.current++;
+  }, delayMs);
 
   return interval;
 }
