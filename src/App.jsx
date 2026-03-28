@@ -2,6 +2,7 @@ import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import React from "react";
 import MazeGenerator from './components/MazeGenerator';
 import { generateMaze, solveAndAnimate, drawMaze } from './components/MazeGenerator';
+import { benchmarkMaps } from './components/MapGenerator';
 import './style.css';
 
 export default function App() {
@@ -18,8 +19,16 @@ export default function App() {
   const [progress,  setProgress]  = useState(0);
   const [stats,     setStats]     = useState(null);  // { visitedCount, pathCost }
   const [selected, setSelected] = useState('DFS');
+  const [mapIndex, setMapIndex] = useState(0);
 
-  const grid = useMemo(() => generateMaze(cellCount, density, seed), [cellCount, density, seed]);
+  const currentMap = benchmarkMaps[mapIndex];
+
+  const grid = useMemo(() => {
+    return currentMap.grid ? currentMap.grid : generateMaze(cellCount, density, seed);
+  }, [mapIndex, cellCount, density, seed]);
+
+  const startNode = useMemo(() => currentMap.start ? currentMap.start : [1, 1], [currentMap, grid]);
+  const targetNode = useMemo(() => currentMap.goal ? currentMap.goal : [grid.length - 2, grid[0].length - 2], [currentMap, grid]);
 
   const resetProgress = useCallback(() => {
     progressRef.current = 0;
@@ -52,7 +61,7 @@ export default function App() {
     }
     setIsSolving(false);
     resetProgress();
-    if (mazeRef.current) drawMaze(mazeRef.current.getContext("2d"), grid);
+    if (mazeRef.current) drawMaze(mazeRef.current.getContext("2d"), grid, startNode, targetNode);
   };
 
   const handleToggleSolve = () => {
@@ -68,7 +77,7 @@ export default function App() {
       }
 
       const timerId = solveAndAnimate(
-        selected, grid, mazeRef.current,
+        selected, grid, mazeRef.current, startNode, targetNode,
         progressRef, stepsRef, speed,
         (s) => setStats(s),
         () => { setIsSolving(false); setProgress(progressRef.current); }
@@ -93,21 +102,23 @@ export default function App() {
     <>
       {/* ── LEFT PANEL: controls ── */}
       <div className="panel_left">
-        <div className="panel_title"> Maze Solver</div>
+        <div className="panel_title"> Tom & Jerry Chase</div>
 
         <div className="control_group">
           <label className="control_label">
             Grid Size <span className="control_value">{cellCount * 2 - 1}×{cellCount * 2 - 1}</span>
           </label>
           <input type="range" min="5" max="51" step="2"
+            disabled={mapIndex !== 0}
             value={cellCount} onChange={(e) => setCellCount(Number(e.target.value))} />
         </div>
 
         <div className="control_group">
           <label className="control_label">
-            Swamp Density <span className="control_value">{Math.round(density * 100)}%</span>
+            Puddle Density <span className="control_value">{Math.round(density * 100)}%</span>
           </label>
           <input type="range" min="0.01" max="0.50" step="0.01"
+            disabled={mapIndex !== 0}
             value={density} onChange={(e) => setDensity(Number(e.target.value))} />
         </div>
 
@@ -121,13 +132,31 @@ export default function App() {
         </div>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: "100%", fontSize: "17px", fontWeight:600 }}>
+          <label>Choose A Map</label>
+          <select style={{display: "flex", textAlign: "center", fontSize: 17, borderRadius: 10, padding: 5, fontWeight: 600, color:"white", backgroundColor: "grey"}}
+          value={mapIndex} 
+          onChange={(e) => setMapIndex(Number(e.target.value))}
+          >
+            {benchmarkMaps.map((m, idx) => (
+              <option key={idx} value={idx}>{m.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: "100%", fontSize: "17px", fontWeight:600 }}>
           <label>Choose An Algorithm</label>
           <select style={{display: "flex", textAlign: "center", fontSize: 17, borderRadius: 10, padding: 5, fontWeight: 600, color:"white", backgroundColor: "grey"}}
           value={selected} 
           onChange={(e) => setSelected(e.target.value)}
           >
             <option>DFS</option>
+            <option>BFS</option>
+            <option>UCS</option>
+            <option>A*</option>
+            <option>Beam Search</option>
             <option>IDA*</option>
+            <option>IDDFS</option>
+            <option>Bidirectional</option>
           </select>
         </div>
 
@@ -157,7 +186,7 @@ export default function App() {
 
       {/* ── CENTER: canvas ── */}
       <div className="center_content">
-        <MazeGenerator ref={mazeRef} grid={grid} />
+        <MazeGenerator ref={mazeRef} grid={grid} startNode={startNode} targetNode={targetNode} />
       </div>
 
       {/* ── RIGHT PANEL: legend + stats ── */}
@@ -165,19 +194,19 @@ export default function App() {
         <div className="panel_title">Legend</div>
 
         <div className="legend">
-          <div className="legend_row"><span className="swatch" style={{background:"#1a1a2e"}} />Wall</div>
-          <div className="legend_row"><span className="swatch" style={{background:"#f5f0eb", border:"1px solid #ccc"}} />Open path (cost 1)</div>
-          <div className="legend_row"><span className="swatch" style={{background:"#2dd4bf"}} />Swamp (cost 3)</div>
-          <div className="legend_row"><span className="swatch" style={{background:"#22c55e"}} />Start</div>
-          <div className="legend_row"><span className="swatch" style={{background:"#ef4444"}} />End</div>
+          <div className="legend_row"><span style={{fontSize:"1.1rem", display:"inline-block", width:"20px", textAlign:"center"}}>🧱</span>Wall</div>
+          <div className="legend_row"><span className="swatch" style={{background:"#fcf9f2", border:"1px solid #ccc"}} />Open path (cost 1)</div>
+          <div className="legend_row"><span style={{fontSize:"1.1rem", display:"inline-block", width:"20px", textAlign:"center"}}>💦</span>Puddle (cost 3)</div>
+          <div className="legend_row"><span style={{fontSize:"1.1rem", display:"inline-block", width:"20px", textAlign:"center"}}>🐭</span>Jerry (Start)</div>
+          <div className="legend_row"><span style={{fontSize:"1.1rem", display:"inline-block", width:"20px", textAlign:"center"}}>🧀</span>Cheese (End)</div>
           <div className="legend_row"><span className="swatch" style={{background:"rgba(99,179,237,0.65)"}} />Visited</div>
           <div className="legend_row"><span className="swatch" style={{background:"rgba(252,129,74,0.45)"}} />Backtracked</div>
         </div>
 
-        {/* Stats — shown as soon as DFS finishes computing */}
+        {/* Stats — shown as soon as search finishes computing */}
         {stats && (
           <div className="stats_box">
-            <div className="stats_title"> DFS Results</div>
+            <div className="stats_title"> {selected} Results</div>
             <div className="stat_row">
               <span className="stat_label">Cells visited</span>
               <span className="stat_value">{stats.visitedCount}</span>

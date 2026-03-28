@@ -2,8 +2,13 @@ import { useRef, useEffect } from "react";
 import React from "react";
 import { useImperativeHandle, forwardRef } from 'react';
 
-import { DFS } from "./SearchAlgorithm/DFSNEW";
-import { IDAStar } from "./SearchAlgorithm/IDAstar";
+import { DFS } from "../algorithms/DFS.js";
+import { BFS } from "../algorithms/BFS.js";
+import { uniformCostSearchGrid } from "../algorithms/UCS.js";
+import { aStarSearch, beamSearch } from "../algorithms/search.js";
+import { IDAStar } from "../algorithms/IDAStar.js";
+import { IDDFS } from "../algorithms/IDDFS.js";
+import { bidirectionalSearchGrid } from "../algorithms/bidirectional.js";
 
 // ─── Maze Generation ─────────────────────────────────────────────────────────
 
@@ -80,7 +85,26 @@ export const STEP_COLORS = {
 
 const CANVAS_PX = 600;
 
-export function drawMaze(ctx, grid) {
+function drawEmoji(ctx, r, c, cellPx, emoji, bgColor = null) {
+  const x = Math.round(c * cellPx);
+  const y = Math.round(r * cellPx);
+  const size = Math.ceil(cellPx);
+
+  if (bgColor) {
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(x, y, size, size);
+  }
+
+  // Draw emoji if cell size is big enough
+  if (cellPx >= 8) {
+    ctx.font = `${Math.floor(cellPx * 0.75)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(emoji, x + size / 2, y + size / 2 + (cellPx * 0.05));
+  }
+}
+
+export function drawMaze(ctx, grid, startNode, targetNode) {
   const rows = grid.length;
   const cols = grid[0].length;
   const cellPx = CANVAS_PX / rows;
@@ -89,44 +113,36 @@ export function drawMaze(ctx, grid) {
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      ctx.fillStyle = CELL_COLORS[grid[r][c]] ?? "#ffffff";
+      const type = grid[r][c];
+
+      // Base path background
+      ctx.fillStyle = "#fcf9f2";
       ctx.fillRect(
         Math.round(c * cellPx),
         Math.round(r * cellPx),
         Math.ceil(cellPx),
         Math.ceil(cellPx)
       );
+
+      if (type === 1) {
+        // Wall
+        drawEmoji(ctx, r, c, cellPx, "🧱", "#e2e8f0");
+      } else if (type === 3 || type === 5) {
+        // Swamp / Hazard
+        drawEmoji(ctx, r, c, cellPx, "💦", "#bae6fd");
+      }
     }
   }
 
-  // Draw start marker (top-left open cell)
-  drawMarker(ctx, 1, 1, cellPx, "#22c55e", "S");
-  // Draw end marker (bottom-right open cell)
-  const end = rows - 2;
-  drawMarker(ctx, end, end, cellPx, "#ef4444", "E");
-}
-
-function drawMarker(ctx, r, c, cellPx, color, label) {
-  const x = Math.round(c * cellPx);
-  const y = Math.round(r * cellPx);
-  const size = Math.ceil(cellPx);
-
-  ctx.fillStyle = color;
-  ctx.fillRect(x, y, size, size);
-
-  // Only draw label if cells are big enough to be readable
-  if (cellPx >= 10) {
-    ctx.fillStyle = "#fff";
-    ctx.font = `bold ${Math.max(8, Math.floor(cellPx * 0.65))}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(label, x + size / 2, y + size / 2);
-  }
+  // Draw start marker (Jerry)
+  if (startNode) drawEmoji(ctx, startNode[0], startNode[1], cellPx, "🐭", "rgba(255, 235, 59, 0.5)");
+  // Draw end marker (Cheese)
+  if (targetNode) drawEmoji(ctx, targetNode[0], targetNode[1], cellPx, "🧀", "rgba(239, 68, 68, 0.2)");
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-const MazeGenerator = forwardRef(({ grid }, ref) => {
+const MazeGenerator = forwardRef(({ grid, startNode, targetNode }, ref) => {
   const canvasRef = useRef(null);
 
   useImperativeHandle(ref, () => canvasRef.current);
@@ -134,8 +150,8 @@ const MazeGenerator = forwardRef(({ grid }, ref) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    drawMaze(canvas.getContext("2d"), grid);
-  }, [grid]);
+    drawMaze(canvas.getContext("2d"), grid, startNode, targetNode);
+  }, [grid, startNode, targetNode]);
 
   return (
     <canvas
@@ -159,25 +175,48 @@ export default MazeGenerator;
 // ─── Solve + Animate ─────────────────────────────────────────────────────────
 
 // speed: 1 (slowest) → 51 (fastest). Converted to ms delay: higher speed = shorter interval.
-export function solveAndAnimate(algoName, grid, canvas, progressRef, stepsRef, speed, onStats, onComplete) {
+export function solveAndAnimate(algoName, grid, canvas, startNode, targetNode, progressRef, stepsRef, speed, onStats, onComplete) {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   const rows = grid.length;
   const cellSize = CANVAS_PX / rows;
 
   if (progressRef.current === 0) {
-    drawMaze(ctx, grid);
+    drawMaze(ctx, grid, startNode, targetNode);
 
-    if (algoName === 'DFS') {
-      console.log("Running DFS");
-      const result = DFS(grid, [1, 1], [rows - 2, rows - 2]);
-      stepsRef.current = result.history;
-      if (onStats) onStats({ visitedCount: result.exploredNodes.length, pathCost: result.cost, time: result.time });
-    } else if (algoName === "IDA*") {
-      console.log("Running IDA*");
-      const result = IDAStar(grid, [1, 1], [rows - 2, rows - 2]);
-      stepsRef.current = result.history;
-      if (onStats) onStats({ visitedCount: result.exploredNodes.length, pathCost: result.cost, time: result.time });
+    let result;
+    if (algoName === 'DFS') result = DFS(grid, startNode, targetNode);
+    else if (algoName === 'BFS') result = BFS(grid, startNode, targetNode);
+    else if (algoName === 'UCS') result = uniformCostSearchGrid(grid, startNode, targetNode);
+    else if (algoName === 'A*') result = aStarSearch(grid, startNode, targetNode);
+    else if (algoName === 'Beam Search') result = beamSearch(grid, startNode, targetNode);
+    else if (algoName === 'IDA*') result = IDAStar(grid, startNode, targetNode);
+    else if (algoName === 'IDDFS') result = IDDFS(grid, startNode, targetNode);
+    else if (algoName === 'Bidirectional') result = bidirectionalSearchGrid(grid, startNode, targetNode);
+    
+    if (result) {
+        let finalSteps = result.history;
+        
+        // If the algorithm doesn't use the '{r, c, type}' history format, we construct it dynamically
+        if (!finalSteps) {
+            finalSteps = [];
+            if (result.exploredNodes) {
+                finalSteps.push(...result.exploredNodes.map(node => ({ r: node[0], c: node[1], type: 'visit' })));
+            }
+            if (result.path) {
+                finalSteps.push(...result.path.map(node => ({ r: node[0], c: node[1], type: 'target' })));
+            }
+        }
+        
+        stepsRef.current = finalSteps;
+        
+        if (onStats) {
+            onStats({ 
+                visitedCount: result.exploredCount ?? (result.exploredNodes ? result.exploredNodes.length : 0), 
+                pathCost: result.pathCost ?? result.cost ?? 0, 
+                time: result.time ?? 0 
+            });
+        }
     }
   }
 
