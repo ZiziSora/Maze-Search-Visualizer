@@ -58,10 +58,12 @@ function uniformCostSearchGrid(gridMap, start, goal) {
     let startKey = `${start[0]},${start[1]}`;
     let goalKey = `${goal[0]},${goal[1]}`;
 
-    pq.enqueue({ pos: start, path: [startKey] }, 0);
+    pq.enqueue({ pos: start, path: [start] }, 0);
 
     let minCosts = {};
     minCosts[startKey] = 0;
+    let exploredCount = 0;
+    let exploredNodes = [];
 
     while (!pq.isEmpty()) {
         let { pos, path } = pq.dequeue();
@@ -69,8 +71,11 @@ function uniformCostSearchGrid(gridMap, start, goal) {
         let currentKey = `${r},${c}`;
         let currentCost = minCosts[currentKey];
 
+        exploredCount++;
+        exploredNodes.push([r, c]);
+
         if (currentKey === goalKey) {
-            return { path: path, totalCost: currentCost };
+            return { path: path, pathCost: currentCost, exploredCount: exploredCount, exploredNodes: exploredNodes };
         }
 
         let neighbors = getNeighbors(r, c, gridMap);
@@ -82,23 +87,14 @@ function uniformCostSearchGrid(gridMap, start, goal) {
             // Update
             if (minCosts[neighborKey] === undefined || newCost < minCosts[neighborKey]) {
                 minCosts[neighborKey] = newCost;
-                let newPath = [...path, neighborKey];
+                let newPath = [...path, [nr, nc]];
                 pq.enqueue({ pos: [nr, nc], path: newPath }, newCost);
             }
         }
     }
-    return null; 
+    return { path: [], pathCost: 0, exploredCount: exploredCount, exploredNodes: exploredNodes };
 }
 
-// Test
-const startNode = [0, 0];
-const goalNode = [4, 4];
-const ucsResult = uniformCostSearchGrid(grid, startNode, goalNode);
 
-console.log("=== KẾT QUẢ UCS ===");
-if (ucsResult) {
-    console.log(`Đường đi: [${ucsResult.path.join("] -> [")}]`);
-    console.log(`Tổng chi phí: ${ucsResult.totalCost}`);
-} else {
-    console.log("Không tìm thấy đường đi!");
-}
+
+export { uniformCostSearchGrid };

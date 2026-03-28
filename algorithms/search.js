@@ -39,7 +39,7 @@ function printCost(cost) {}
 
 // ================= A* =================
 
-function tracePath(cellDetails, dest) {
+function tracePath(cellDetails, dest, exploredCount, exploredNodes) {
   let path = [];
   let [row, col] = dest;
 
@@ -49,9 +49,7 @@ function tracePath(cellDetails, dest) {
   }
   path.push([row, col]);
   path.reverse();
-  console.log("Path:");
-  printPath(path);
-  console.log("Cost:", cellDetails[dest[0]][dest[1]].g);
+  return { path: path, pathCost: cellDetails[dest[0]][dest[1]].g, exploredCount: exploredCount, exploredNodes: exploredNodes };
 }
 
 function aStarSearch(grid, src, dest) {
@@ -76,6 +74,8 @@ function aStarSearch(grid, src, dest) {
   cell[i][j] = { f: 0, g: 0, h: 0, parent_i: i, parent_j: j };
 
   let open = [{ f: 0, i, j }];
+  let exploredCount = 0;
+  let exploredNodes = [];
 
   let dirs = [
     [0, 1],
@@ -89,6 +89,8 @@ function aStarSearch(grid, src, dest) {
     ({ i, j } = open.shift());
 
     closed[i][j] = true;
+    exploredCount++;
+    exploredNodes.push([i, j]);
 
     for (let [di, dj] of dirs) {
       let ni = i + di,
@@ -113,18 +115,18 @@ function aStarSearch(grid, src, dest) {
           parent_j: j
         };
         if (isDestination(ni, nj, dest)) {
-          return tracePath(cell, dest);
+          return tracePath(cell, dest, exploredCount, exploredNodes);
         }
       }
     }
   }
 
-  console.log("A*: No path");
+  return { path: [], pathCost: 0, exploredCount: exploredCount, exploredNodes: exploredNodes };
 }
 
 // ================= BEAM SEARCH =================
 
-function beamSearch(grid, src, dest, k) {
+function beamSearch(grid, src, dest, k = 2) {
   let closed = [];
   for (let i = 0; i < grid.length; i++) {
     closed[i] = [];
@@ -152,6 +154,8 @@ function beamSearch(grid, src, dest, k) {
   };
 
   let open = [{ f: 0, i, j }];
+  let exploredCount = 0;
+  let exploredNodes = [];
 
   let dirs = [
     [0, 1],
@@ -167,6 +171,8 @@ function beamSearch(grid, src, dest, k) {
       let { i, j } = node;
 
       closed[i][j] = true;
+      exploredCount++;
+      exploredNodes.push([i, j]);
 
       for (let [di, dj] of dirs) {
         let ni = i + di,
@@ -188,7 +194,7 @@ function beamSearch(grid, src, dest, k) {
             parent_j: j
           };
           if (isDestination(ni, nj, dest)) {
-            return tracePath(cell, dest);
+            return tracePath(cell, dest, exploredCount, exploredNodes);
           }
           newOpen.push({ f: fNew, i: ni, j: nj });
         }
@@ -200,8 +206,8 @@ function beamSearch(grid, src, dest, k) {
     open = newOpen.slice(0, k);
   }
 
-  console.log("Beam Search: No path");
+  return { path: [], pathCost: 0, exploredCount: exploredCount, exploredNodes: exploredNodes };
 }
 
 
-export default {beamSearch, aStarSearch}
+export {beamSearch, aStarSearch}

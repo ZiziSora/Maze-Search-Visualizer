@@ -8,11 +8,17 @@ const IDDFS = (maze, start, goal) => {
     let exploredNodes = [];
     let path = [];
 
+    let exploredCount = 0; 
+    const MAX_STORED_NODES = 50000;
 
     const DLS = (src, target, limit, visited, currentPath) => {
 
         let [x, y] = src;
-        exploredNodes.push([x, y]);
+        exploredCount++;
+
+        if (exploredNodes.length < MAX_STORED_NODES) {
+            exploredNodes.push([x, y]);
+        }
 
 
         if (src[0] === target[0] && src[1] === target[1]) {
@@ -69,10 +75,13 @@ const IDDFS = (maze, start, goal) => {
         }
     }
 
+    exploredNodes.length = exploredCount;
+
     return {
         path: path,
+        exploredCount: exploredCount,
         exploredNodes: exploredNodes,
-        cost: finalCost,
+        pathCost: finalCost,
         time: performance.now() - timeStart
     }
 }

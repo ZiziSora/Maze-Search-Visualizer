@@ -65,8 +65,9 @@ const BFS = (maze, start, goal) => {
 
     return {
         path: path,
+        exploredCount: exploredNodes.length,
+        pathCost: finalCost,
         exploredNodes: exploredNodes,
-        cost: finalCost,
         time: performance.now() - timeStart
     }
 }
