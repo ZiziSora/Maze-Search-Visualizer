@@ -134,8 +134,7 @@ export function drawMaze(ctx, grid, startNode, targetNode) {
     }
   }
 
-  // Draw start marker (Jerry)
-  if (startNode) drawEmoji(ctx, startNode[0], startNode[1], cellPx, "🐭", "rgba(255, 235, 59, 0.5)");
+  // Draw start marker (Jerry) - Migrated to CSS Overlay Div, no longer drew on Canvas directly
   // Draw end marker (Cheese)
   if (targetNode) drawEmoji(ctx, targetNode[0], targetNode[1], cellPx, "🧀", "rgba(239, 68, 68, 0.2)");
 }
@@ -151,22 +150,65 @@ const MazeGenerator = forwardRef(({ grid, startNode, targetNode }, ref) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     drawMaze(canvas.getContext("2d"), grid, startNode, targetNode);
+
+    // Reset Jerry Sprite visually
+    const rows = grid.length || 1;
+    const cellSize = CANVAS_PX / rows;
+    const jr = startNode ? startNode[0] : 1;
+    const jc = startNode ? startNode[1] : 1;
+    const jerryContainer = document.getElementById("jerry-sprite-container");
+    const jerryInner = document.getElementById("jerry-sprite");
+    if (jerryContainer) {
+      jerryContainer.style.transform = `translate(${Math.round(jc * cellSize)}px, ${Math.round(jr * cellSize)}px)`;
+    }
+    if (jerryInner) {
+      jerryInner.innerHTML = "🐭";
+    }
   }, [grid, startNode, targetNode]);
 
+  const rows = grid.length || 1;
+  const cellSize = CANVAS_PX / rows;
+
   return (
-    <canvas
-      ref={canvasRef}
-      width={CANVAS_PX}
-      height={CANVAS_PX}
-      style={{
-        display: "block",
-        width: "100%",
-        maxWidth: CANVAS_PX,
-        imageRendering: "pixelated",
-        borderRadius: "8px",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.18)",
-      }}
-    />
+    <div style={{ position: "relative", width: "100%", maxWidth: CANVAS_PX, margin: "0 auto" }}>
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_PX}
+        height={CANVAS_PX}
+        style={{
+          display: "block",
+          width: "100%",
+          imageRendering: "pixelated",
+          borderRadius: "8px",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.18)",
+        }}
+      />
+      <div
+        id="jerry-sprite-container"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: `${cellSize}px`,
+          height: `${cellSize}px`,
+          zIndex: 100,
+          pointerEvents: "none",
+          transition: "transform 0.1s linear"
+        }}
+      >
+        <div
+          id="jerry-sprite"
+          className="jerry-sprite"
+          style={{
+            width: "100%",
+            height: "100%",
+            fontSize: `${Math.floor(cellSize * 0.75)}px`,
+          }}
+        >
+          🐭
+        </div>
+      </div>
+    </div>
   );
 });
 
@@ -210,10 +252,20 @@ export function solveAndAnimate(algoName, grid, canvas, startNode, targetNode, p
         
         stepsRef.current = finalSteps;
         
+        // Ensure 100% accuracy of metrics regardless of the algorithm's raw output math quirks
+        let accuratePathCost = 0;
+        if (result.path && result.path.length > 0) {
+            for (let i = 1; i < result.path.length; i++) {
+                let [pr, pc] = result.path[i];
+                accuratePathCost += (grid[pr][pc] === 3 ? 3 : 1);
+            }
+        }
+
         if (onStats) {
             onStats({ 
-                visitedCount: result.exploredCount ?? (result.exploredNodes ? result.exploredNodes.length : 0), 
-                pathCost: result.pathCost ?? result.cost ?? 0, 
+                visitedCount: result.exploredNodes ? result.exploredNodes.length : (result.exploredCount || 0), 
+                pathCost: accuratePathCost,
+                pathLength: result.path ? Math.max(0, result.path.length - 1) : 0,
                 time: result.time ?? 0 
             });
         }
@@ -224,6 +276,10 @@ export function solveAndAnimate(algoName, grid, canvas, startNode, targetNode, p
   // Invert speed so slider feels natural: higher value = faster = shorter delay
   const delayMs = Math.max(1, Math.round(1050 - speed * 20));
 
+  // Slow Jerry down exclusively to run at ~180ms per tile for cinematic effect
+  const framesToSkip = Math.max(0, Math.round(180 / delayMs) - 1);
+  let skipCount = 0;
+
   const interval = setInterval(() => {
     if (progressRef.current >= steps.length) {
       clearInterval(interval);
@@ -232,13 +288,47 @@ export function solveAndAnimate(algoName, grid, canvas, startNode, targetNode, p
     }
 
     const { r, c, type } = steps[progressRef.current];
-    ctx.fillStyle = STEP_COLORS[type] ?? STEP_COLORS.visit;
-    ctx.fillRect(
-      Math.round(c * cellSize),
-      Math.round(r * cellSize),
-      Math.ceil(cellSize),
-      Math.ceil(cellSize)
-    );
+
+    if (type === 'target' && skipCount < framesToSkip) {
+      skipCount++;
+      return;
+    }
+    skipCount = 0;
+    
+    if (type === 'visit' || type === 'backtrack') {
+      ctx.fillStyle = STEP_COLORS[type] ?? STEP_COLORS.visit;
+      ctx.fillRect(
+        Math.round(c * cellSize),
+        Math.round(r * cellSize),
+        Math.ceil(cellSize),
+        Math.ceil(cellSize)
+      );
+    } else if (type === 'target') {
+      // 1. Draw green path on the CURRENT cell
+      ctx.fillStyle = STEP_COLORS.target;
+      ctx.fillRect(
+        Math.round(c * cellSize),
+        Math.round(r * cellSize),
+        Math.ceil(cellSize),
+        Math.ceil(cellSize)
+      );
+
+      // 2. Smoothly Glide Jerry down the correct final path!
+      const isEnd = progressRef.current === steps.length - 1;
+      const emojiToDraw = isEnd ? "😋" : "🐭";
+      
+      const jerryContainer = document.getElementById("jerry-sprite-container");
+      const jerryInner = document.getElementById("jerry-sprite");
+      
+      if (jerryContainer) {
+        // Synchronously stretch the CSS gliding duration to precisely match the frame throttling time!
+        jerryContainer.style.transitionDuration = `${Math.max(delayMs * (framesToSkip + 1), 100)}ms`;
+        jerryContainer.style.transform = `translate(${Math.round(c * cellSize)}px, ${Math.round(r * cellSize)}px)`;
+      }
+      if (isEnd && jerryInner) {
+        jerryInner.innerHTML = emojiToDraw;
+      }
+    }
 
     progressRef.current++;
   }, delayMs);

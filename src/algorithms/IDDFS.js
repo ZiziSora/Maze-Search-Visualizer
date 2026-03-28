@@ -1,7 +1,3 @@
-
-
-
-
 const IDDFS = (maze, start, goal) => {
     let timeStart = performance.now();
     let maxLength = maze.length * maze[0].length;

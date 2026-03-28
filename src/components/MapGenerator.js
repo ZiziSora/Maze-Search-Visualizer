@@ -52,31 +52,31 @@ export class MapGenerator {
 
 export const benchmarkMaps = [
     {
-        name: "Random Swamp",
+        name: "Random",
         grid: null, // Signals App.jsx to use generateMaze
         start: null,
         goal: null
     },
     {
-        name: "1. The Open Field",
+        name: "The Open Field",
         grid: MapGenerator.generateOpenField(),
         start: [0, 0],
         goal: [49, 49]
     },
     {
-        name: "2. The Deep Trap",
+        name: "The Deep Trap",
         grid: MapGenerator.generateDeepTrap(),
         start: [25, 10], 
         goal: [25, 40]   
     },
     {
-        name: "3. The Cost Variance (Swamps)",
+        name: "The Cost Variance",
         grid: MapGenerator.generateCostVariance(),
         start: [0, 0],
         goal: [49, 49]
     },
     {
-        name: "4. The Impossible Map",
+        name: "The Impossible Map",
         grid: MapGenerator.generateImpossibleMap(),
         start: [0, 0],
         goal: [49, 49]

@@ -47,6 +47,15 @@ export default function App() {
     resetProgress();
   }, [grid, selected, resetProgress]);
 
+  // Academic Constraints
+  const isIddfsAllowed = grid.length <= 25;
+  const isIdaStarAllowed = mapIndex === 0 || mapIndex === 1 || mapIndex === 3;
+
+  useEffect(() => {
+    if (selected === 'IDDFS' && !isIddfsAllowed) setSelected('DFS');
+    if (selected === 'IDA*' && !isIdaStarAllowed) setSelected('DFS');
+  }, [grid.length, mapIndex, selected]);
+
   // Sync progress state every 150ms while animating
   useEffect(() => {
     if (!isSolving) return;
@@ -62,6 +71,17 @@ export default function App() {
     setIsSolving(false);
     resetProgress();
     if (mazeRef.current) drawMaze(mazeRef.current.getContext("2d"), grid, startNode, targetNode);
+    
+    // Explicitly snap Jerry back to start line via DOM!
+    const jerryContainer = document.getElementById("jerry-sprite-container");
+    const jerryInner = document.getElementById("jerry-sprite");
+    if (jerryContainer && startNode) {
+      const cellSize = 600 / grid.length;
+      jerryContainer.style.transitionDuration = "0s"; // prevent sliding backwards across the map
+      jerryContainer.style.transform = `translate(${Math.round(startNode[1] * cellSize)}px, ${Math.round(startNode[0] * cellSize)}px)`;
+      setTimeout(() => jerryContainer.style.transitionDuration = "0.1s", 50);
+    }
+    if (jerryInner) jerryInner.innerHTML = "🐭";
   };
 
   const handleToggleSolve = () => {
@@ -154,8 +174,8 @@ export default function App() {
             <option>UCS</option>
             <option>A*</option>
             <option>Beam Search</option>
-            <option>IDA*</option>
-            <option>IDDFS</option>
+            {isIdaStarAllowed && <option>IDA*</option>}
+            {isIddfsAllowed && <option>IDDFS</option>}
             <option>Bidirectional</option>
           </select>
         </div>
@@ -216,8 +236,8 @@ export default function App() {
               <span className="stat_value">{stats.pathCost}</span>
             </div>
             <div className="stat_row">
-              <span className="stat_label">Total steps</span>
-              <span className="stat_value">{stepsRef.current.length}</span>
+              <span className="stat_label">Path length</span>
+              <span className="stat_value">{stats.pathLength}</span>
             </div>
             <div className="stat_row">
               <span className="stat_label">Execution time</span>

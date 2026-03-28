@@ -221,3 +221,19 @@ input[type="range"]:not(:disabled)::-webkit-slider-thumb:hover { transform: scal
   padding-top: 4px;
   border-top: 1px solid var(--border);
 }
+
+/* ── Character Sprite Animation ───────────────────────────────── */
+@keyframes jerryWobble {
+  0%   { transform: rotate(-8deg) scale(1) translateY(0px); }
+  50%  { transform: rotate(8deg) scale(1.1) translateY(-10%); }
+  100% { transform: rotate(-8deg) scale(1) translateY(0px); }
+}
+
+.jerry-sprite {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  /* Continuous wobble for lively appearance */
+  animation: jerryWobble 0.4s infinite alternate ease-in-out;
+}
