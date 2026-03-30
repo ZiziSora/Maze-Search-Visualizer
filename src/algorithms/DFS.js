@@ -40,7 +40,6 @@ export const DFS = (maze, start, goal) => {
 
     currentPath.pop();
     currentCost[0] -= moveCost;
-    visited.delete(key);
     return false;
   }
 
