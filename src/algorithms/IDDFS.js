@@ -54,14 +54,10 @@ const IDDFS = (maze, start, goal) => {
     }
   }
 
-  let finalCost = 0;
-  if (path.length > 0) {
-    for (let i = 1; i < path.length; i++) {
-        let [r, c] = path[i];
-        finalCost += maze[r][c] === 3 ? 3 : 1;
-    }
-  }
+  // GIỮ NGUYÊN LOGIC TÍNH COST CŨ: dựa vào độ dài đường đi (path.length - 1)
+  let finalCost = path.length > 0 ? path.length - 1 : 0;
 
+  // FORMAT RETURN LẠI THEO CHUẨN MỚI
   return {
     path: path,
     pathLength: path.length,

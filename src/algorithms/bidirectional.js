@@ -46,7 +46,7 @@ function buildPathGrid(parentF, parentB, intersectionKey) {
 
   // 2. Lần vết từ điểm chạm nhau tiến về Goal
   curr = parentB[intersectionKey];
-  // Bỏ qua node giao điểm để không bị lặp
+  // Bỏ qua node giao điểm để không bị lặp (LOGIC CŨ)
   curr = parentB[curr];
   while (curr !== null) {
     path.push(curr);
@@ -67,7 +67,15 @@ export function bidirectionalSearchGrid(gridMap, start, goal) {
 
   if (startKey === goalKey) {
     const endTime = performance.now();
-    return { path: [start], exploredNodes: [start], cost: 0, time: endTime - startTime };
+    return {
+      path: [start],
+      pathLength: 1,
+      exploredNodes: [start],
+      exploredCount: 1,
+      pathCost: 0,
+      time: endTime - startTime,
+      noPath: false
+    };
   }
 
   let queueF = [start]; // Hàng đợi từ Start
@@ -93,22 +101,16 @@ export function bidirectionalSearchGrid(gridMap, start, goal) {
         parentF[neighborKey] = currFKey;
         queueF.push([nr, nc]);
 
+        // Gặp nhau
         if (parentB[neighborKey] !== undefined) {
           const finalPath = buildPathGrid(parentF, parentB, neighborKey);
-          
-          let finalCost = 0;
-          for (let i = 1; i < finalPath.length; i++) {
-            let [r, c] = finalPath[i];
-            finalCost += gridMap[r][c] === 3 ? 3 : 1;
-          }
-
           const endTime = performance.now();
           return {
             path: finalPath,
             pathLength: finalPath.length,
             exploredNodes: exploredNodes,
             exploredCount: exploredNodes.length,
-            pathCost: finalCost,
+            pathCost: finalPath.length - 1, // Chi phí tính theo logic cũ
             time: endTime - startTime,
             noPath: false
           };
@@ -129,22 +131,16 @@ export function bidirectionalSearchGrid(gridMap, start, goal) {
         parentB[neighborKey] = currBKey;
         queueB.push([nr, nc]);
 
+        // Gặp nhau
         if (parentF[neighborKey] !== undefined) {
           const finalPath = buildPathGrid(parentF, parentB, neighborKey);
-          
-          let finalCost = 0;
-          for (let i = 1; i < finalPath.length; i++) {
-            let [r, c] = finalPath[i];
-            finalCost += gridMap[r][c] === 3 ? 3 : 1;
-          }
-
           const endTime = performance.now();
           return {
             path: finalPath,
             pathLength: finalPath.length,
             exploredNodes: exploredNodes,
             exploredCount: exploredNodes.length,
-            pathCost: finalCost,
+            pathCost: finalPath.length - 1, // Chi phí tính theo logic cũ
             time: endTime - startTime,
             noPath: false
           };
@@ -155,5 +151,13 @@ export function bidirectionalSearchGrid(gridMap, start, goal) {
 
   // Nếu không tìm thấy đường đi
   const endTime = performance.now();
-  return { path: [], pathLength: 0, pathCost: 0, exploredCount: exploredNodes.length, exploredNodes: exploredNodes, time: endTime - startTime, noPath: true };
+  return {
+    path: [],
+    pathLength: 0,
+    exploredNodes: exploredNodes,
+    exploredCount: exploredNodes.length,
+    pathCost: 0,
+    time: endTime - startTime,
+    noPath: true
+  };
 }

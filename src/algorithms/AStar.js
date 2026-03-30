@@ -35,8 +35,6 @@ function printPath(path) {
   console.log(path.map(p => `[${p[0]}, ${p[1]}]`).join(" -> "));
 }
 
-// ================= A* =================
-
 function tracePath(cellDetails, dest) {
   let path = [];
   let [row, col] = dest;
@@ -49,6 +47,8 @@ function tracePath(cellDetails, dest) {
   path.reverse();
   return path;
 }
+
+// ================= A* =================
 
 export function aStarSearch(grid, src, dest) {
   const closed = [];
@@ -95,6 +95,8 @@ export function aStarSearch(grid, src, dest) {
     if (isDestination(i, j, dest)) {
       let path = tracePath(cell, dest);
       let finalCost = cell[i][j].g;
+
+      // FORMAT RETURN CHUẨN MỚI
       return {
         path: path,
         pathLength: path.length,
@@ -131,5 +133,16 @@ export function aStarSearch(grid, src, dest) {
     }
   }
 
-  return { path: [], pathLength: 0, pathCost: 0, exploredCount: exploredNodes.length, exploredNodes: exploredNodes, time: performance.now() - timeStart, noPath: true };
+  // TRẢ VỀ KHI KHÔNG TÌM THẤY ĐƯỜNG
+  return {
+    path: [],
+    pathLength: 0,
+    exploredNodes: exploredNodes,
+    exploredCount: exploredNodes.length,
+    pathCost: 0,
+    time: performance.now() - timeStart,
+    noPath: true
+  };
 }
+
+// ================= BEAM SEARCH =================

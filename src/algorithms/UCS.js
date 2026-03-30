@@ -1,5 +1,5 @@
 // ==========================================
-// THUẬT TOÁN UNIFORM COST SEARCH (UCS) - FIXED
+// THUẬT TOÁN UNIFORM COST SEARCH (UCS) (UPDATED)
 // ==========================================
 
 // Convert cost
@@ -15,7 +15,10 @@ function getNeighbors(r, c, gridMap) {
   const cols = gridMap[0].length;
   const neighbors = [];
   const directions = [
-    [-1, 0], [1, 0], [0, -1], [0, 1]
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1]
   ];
 
   for (let [dr, dc] of directions) {
@@ -35,11 +38,12 @@ class PriorityQueue {
   }
   enqueue(item, priority) {
     this.elements.push({ item, priority });
+    // Sắp xếp để phần tử có chi phí nhỏ nhất luôn nổi lên đầu
     this.elements.sort((a, b) => a.priority - b.priority);
   }
   dequeue() {
-    // SỬA: Trả về toàn bộ object để lấy được cả item và priority
-    return this.elements.shift();
+    // GIỮ NGUYÊN LOGIC CŨ: Chỉ trả về item
+    return this.elements.shift().item;
   }
   isEmpty() {
     return this.elements.length === 0;
@@ -48,8 +52,8 @@ class PriorityQueue {
 
 // UCS
 export function uniformCostSearchGrid(gridMap, start, goal) {
-  const startTime = performance.now();
-  let exploredNodes = [];
+  const startTime = performance.now(); // Bắt đầu đếm giờ
+  let exploredNodes = []; // Mảng lưu các node đã duyệt
 
   let pq = new PriorityQueue();
   let startKey = `${start[0]},${start[1]}`;
@@ -61,24 +65,22 @@ export function uniformCostSearchGrid(gridMap, start, goal) {
   minCosts[startKey] = 0;
 
   while (!pq.isEmpty()) {
-    // SỬA: Lấy node và chi phí thực của nó tại thời điểm enqueue
-    let { item, priority } = pq.dequeue();
-    let { pos, path } = item;
-    let currentCost = priority;
+    // GIỮ NGUYÊN LOGIC CŨ
+    let { pos, path } = pq.dequeue();
+
+    // Push toạ độ hiện tại vào exploredNodes
+    exploredNodes.push(pos);
 
     let [r, c] = pos;
     let currentKey = `${r},${c}`;
-
-    // QUAN TRỌNG: Nếu chi phí này lớn hơn chi phí nhỏ nhất đã tìm thấy cho node này, bỏ qua.
-    // Đây là bước ngăn chặn việc duyệt lại các "node rác" cũ trong Queue.
-    if (currentCost > minCosts[currentKey]) continue;
-
-    exploredNodes.push(pos);
+    let currentCost = minCosts[currentKey]; // Lấy cost theo logic cũ
 
     if (currentKey === goalKey) {
       const endTime = performance.now();
+      // Convert path từ mảng string ("r,c") sang mảng số ([r, c])
       const finalPath = path.map(p => p.split(",").map(Number));
 
+      // FORMAT RETURN LẠI THEO CHUẨN MỚI
       return {
         path: finalPath,
         pathLength: finalPath.length,
@@ -86,7 +88,7 @@ export function uniformCostSearchGrid(gridMap, start, goal) {
         exploredCount: exploredNodes.length,
         pathCost: currentCost,
         time: endTime - startTime,
-        noPath: false // Thêm để đồng bộ với các file khác
+        noPath: false
       };
     }
 
@@ -96,6 +98,7 @@ export function uniformCostSearchGrid(gridMap, start, goal) {
       let stepCost = getCost(gridMap[nr][nc]);
       let newCost = currentCost + stepCost;
 
+      // Update
       if (minCosts[neighborKey] === undefined || newCost < minCosts[neighborKey]) {
         minCosts[neighborKey] = newCost;
         let newPath = [...path, neighborKey];
@@ -104,15 +107,17 @@ export function uniformCostSearchGrid(gridMap, start, goal) {
     }
   }
 
+  // Nếu không tìm thấy đường đi
   const endTime = performance.now();
-  // SỬA: Trả về đầy đủ các key để tránh lỗi khi render UI
-  return { 
-    path: [], 
-    pathLength: 0, 
-    exploredNodes: exploredNodes, 
-    exploredCount: exploredNodes.length, 
-    pathCost: 0, 
-    time: endTime - startTime, 
-    noPath: true 
+
+  // FORMAT RETURN LẠI THEO CHUẨN MỚI
+  return {
+    path: [],
+    pathLength: 0,
+    exploredNodes: exploredNodes,
+    exploredCount: exploredNodes.length,
+    pathCost: 0,
+    time: endTime - startTime,
+    noPath: true
   };
 }

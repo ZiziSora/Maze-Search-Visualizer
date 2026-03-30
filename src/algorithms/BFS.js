@@ -51,19 +51,10 @@ const BFS = (maze, start, goal) => {
     }
   }
 
-  let finalCost = 0;
-  if (path.length > 0) {
-    for (let i = 1; i < path.length; i++) {
-      let [px, py] = path[i];
-      let terrainType = maze[px][py];
+  // GIỮ NGUYÊN LOGIC TÍNH COST CŨ: số bước đi (path.length - 1)
+  let finalCost = path.length > 0 ? path.length - 1 : 0;
 
-      if (terrainType === 3) {
-        finalCost += 3; // Đầm lầy tốn 3 chi phí
-      } else {
-        finalCost += 1; // Đường trống (0) hoặc đích (2,3) tốn 1 chi phí
-      }
-    }
-  }
+  // FORMAT RETURN LẠI THEO CHUẨN MỚI
   if (path.length === 0) {
     return {
       path: [],

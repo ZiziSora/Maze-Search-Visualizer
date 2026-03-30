@@ -26,9 +26,7 @@ export const DFS = (maze, start, goal) => {
     exploredNodes.push([x, y]);
     currentPath.push([x, y]);
     const moveCost = maze[x][y] === 3 ? 3 : 1;
-    if (!(x === start[0] && y === start[1])) {
-      currentCost[0] += moveCost;
-    }
+    currentCost[0] += moveCost;
 
     if (x === goal[0] && y === goal[1]) {
       cost = currentCost[0];
@@ -42,29 +40,22 @@ export const DFS = (maze, start, goal) => {
 
     currentPath.pop();
     currentCost[0] -= moveCost;
+    visited.delete(key);
     return false;
   }
 
   dfsRecurse(start[0], start[1], [], [0]);
-  if (path.length === 0) {
-    return {
-      path: [],
-      pathLength: 0,
-      exploredCount: exploredNodes.length,
-      pathCost: 0,
-      exploredNodes: exploredNodes,
-      time: performance.now() - timeStart,
-      noPath: true
-    };
-  }
 
+  const noPath = path.length === 0;
+
+  // Format return lại theo chuẩn mới
   return {
     path: path,
     pathLength: path.length,
     exploredCount: exploredNodes.length,
     exploredNodes: exploredNodes,
-    pathCost: cost,
+    pathCost: cost, // Kết quả cost vẫn là của thuật toán cũ
     time: performance.now() - timeStart,
-    noPath: false
+    noPath: noPath
   };
 };

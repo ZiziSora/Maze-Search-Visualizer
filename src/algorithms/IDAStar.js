@@ -5,6 +5,7 @@ const DIRECTIONS = [
   [0, -1]
 ];
 
+// IDA*
 export const IDAStar = (maze, start, goal) => {
   const exploredNodes = [];
   let cost = 0;
@@ -58,29 +59,24 @@ export const IDAStar = (maze, start, goal) => {
 
     if (result === "FOUND") {
       foundPath = path;
+      // Cách tính cost giữ nguyên như code cũ
       cost = foundPath.reduce((sum, [x, y]) => sum + (maze[x][y] === 3 ? 3 : 1), 0) - 1;
       break;
     }
     if (result === Infinity) break;
     threshold = result;
   }
+
   const finalPath = foundPath ?? [];
   const noPath = finalPath.length === 0;
 
-  let finalCost = 0;
-  if (!noPath) {
-    for (let i = 1; i < finalPath.length; i++) {
-        let [r, c] = finalPath[i];
-        finalCost += maze[r][c] === 3 ? 3 : 1;
-    }
-  }
-
+  // Format return lại theo chuẩn mới
   return {
     path: finalPath,
     pathLength: finalPath.length,
     exploredCount: exploredNodes.length,
     exploredNodes: exploredNodes,
-    pathCost: finalCost,
+    pathCost: cost, // Kết quả cost vẫn là của thuật toán cũ
     time: performance.now() - timeStart,
     noPath: noPath
   };
