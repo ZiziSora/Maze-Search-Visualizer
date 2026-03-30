@@ -245,13 +245,35 @@ export function solveAndAnimate(
   const rows = grid.length;
   const cellSize = CANVAS_PX / rows;
 
-  let result = null; // ✅ FIX scope
+  let result = null;
 
-  // 👉 reset mỗi lần run
   let visitedCount = 0;   
   let currentCost = 0;
   let currentLength = 0;
-  let noPathFlag = false
+  let noPathFlag = false;
+
+  if (progressRef.current > 0 && stepsRef.current) {
+    result = stepsRef.current.algoResult || null;
+    if (result && (!result.path || result.path.length === 0)) {
+      noPathFlag = true;
+    }
+
+    const steps = stepsRef.current;
+    for (let i = 0; i < progressRef.current; i++) {
+      if (!steps[i]) continue;
+      const { r, c, type } = steps[i];
+      if (type === 'visit' || type === 'backtrack') {
+        visitedCount++;
+      } else if (type === 'target') {
+        currentLength++;
+        if (currentLength > 1) {
+          const cellVal = grid[r][c];
+          const cellCost = cellVal === 3 ? 3 : 1;
+          currentCost += cellCost;
+        }
+      }
+    }
+  }
 
   if (progressRef.current === 0) {
     drawMaze(ctx, grid, startNode, targetNode);
@@ -320,6 +342,11 @@ export function solveAndAnimate(
     }
 
     stepsRef.current = finalSteps;
+  }
+  
+  // Attach result so we can recover it on pause/continue
+  if (stepsRef.current) {
+    stepsRef.current.algoResult = result;
   }
 }
   }

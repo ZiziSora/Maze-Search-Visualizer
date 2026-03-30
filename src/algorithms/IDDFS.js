@@ -4,7 +4,7 @@ const IDDFS = (maze, start, goal) => {
   let exploredNodes = [];
   let path = [];
 
-  const DLS = (src, target, limit, visited, currentPath, exploredNodes) => {
+  const DLS = (src, target, limit, visited, currentPath) => {
     let [x, y] = src;
     exploredNodes.push([x, y]);
 
@@ -32,7 +32,7 @@ const IDDFS = (maze, start, goal) => {
           visited.add(key);
           currentPath.push([nx, ny]);
 
-          if (DLS([nx, ny], target, limit - 1, visited, currentPath, exploredNodes)) {
+          if (DLS([nx, ny], target, limit - 1, visited, currentPath)) {
             return true;
           }
 
@@ -49,21 +49,33 @@ const IDDFS = (maze, start, goal) => {
     visited.add(`${start[0]},${start[1]}`);
     let currentPath = [start];
 
-    if (DLS(start, goal, limit, visited, currentPath, exploredNodes)) {
+    if (DLS(start, goal, limit, visited, currentPath)) {
       break;
     }
   }
 
-  // GIỮ NGUYÊN LOGIC TÍNH COST CŨ: dựa vào độ dài đường đi (path.length - 1)
-  let finalCost = path.length > 0 ? path.length - 1 : 0;
+  // LOGIC TÍNH COST THEO ĐỊA HÌNH
+  let finalCost = 0;
+  if (path.length > 0) {
+    for (let i = 1; i < path.length; i++) {
+      let [px, py] = path[i];
+      let terrainType = maze[px][py];
+
+      if (terrainType === 3) {
+        finalCost += 3; // Đầm lầy
+      } else {
+        finalCost += 1; // Đường trống
+      }
+    }
+  }
 
   // FORMAT RETURN LẠI THEO CHUẨN MỚI
   return {
-    path: path,
+    path,
     pathLength: path.length,
-    exploredNodes: exploredNodes,
     exploredCount: exploredNodes.length,
     pathCost: finalCost,
+    exploredNodes,
     time: performance.now() - timeStart,
     noPath: path.length === 0
   };

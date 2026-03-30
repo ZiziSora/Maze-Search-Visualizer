@@ -46,8 +46,7 @@ function buildPathGrid(parentF, parentB, intersectionKey) {
 
   // 2. Lần vết từ điểm chạm nhau tiến về Goal
   curr = parentB[intersectionKey];
-  // Bỏ qua node giao điểm để không bị lặp (LOGIC CŨ)
-  curr = parentB[curr];
+  // KHÔNG CẦN bỏ qua node kế tiếp (đã bỏ qua vì intersectionKey đã được push ở phần 1)
   while (curr !== null) {
     path.push(curr);
     curr = parentB[curr];

@@ -51,30 +51,29 @@ const BFS = (maze, start, goal) => {
     }
   }
 
-  // GIỮ NGUYÊN LOGIC TÍNH COST CŨ: số bước đi (path.length - 1)
-  let finalCost = path.length > 0 ? path.length - 1 : 0;
+  // LOGIC TÍNH COST THEO ĐỊA HÌNH
+  let finalCost = 0;
+  if (path.length > 0) {
+    for (let i = 1; i < path.length; i++) {
+      let [px, py] = path[i];
+      let terrainType = maze[px][py];
 
-  // FORMAT RETURN LẠI THEO CHUẨN MỚI
-  if (path.length === 0) {
-    return {
-      path: [],
-      pathLength: 0,
-      exploredCount: exploredNodes.length,
-      pathCost: 0,
-      exploredNodes: exploredNodes,
-      time: performance.now() - timeStart,
-      noPath: true
-    };
+      if (terrainType === 3) {
+        finalCost += 3; // Đầm lầy
+      } else {
+        finalCost += 1; // Đường trống
+      }
+    }
   }
 
   return {
-    path: path,
+    path,
     pathLength: path.length,
     exploredCount: exploredNodes.length,
     pathCost: finalCost,
-    exploredNodes: exploredNodes,
+    exploredNodes,
     time: performance.now() - timeStart,
-    noPath: false
+    noPath: path.length === 0
   };
 };
 
