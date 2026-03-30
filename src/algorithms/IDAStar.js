@@ -1,8 +1,11 @@
+const DIRECTIONS = [
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+  [0, -1]
+];
 
-const DIRECTIONS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
-
-// IDA*
-const IDAStar = (maze, start, goal) => {
+export const IDAStar = (maze, start, goal) => {
   const exploredNodes = [];
   let cost = 0;
   const timeStart = performance.now();
@@ -24,7 +27,8 @@ const IDAStar = (maze, start, goal) => {
     let min = Infinity;
 
     for (const [dx, dy] of DIRECTIONS) {
-      const nx = x + dx, ny = y + dy;
+      const nx = x + dx,
+        ny = y + dy;
       const key = `${nx},${ny}`;
 
       if (isValid(nx, ny) && !visited.has(key)) {
@@ -60,14 +64,24 @@ const IDAStar = (maze, start, goal) => {
     if (result === Infinity) break;
     threshold = result;
   }
+  const finalPath = foundPath ?? [];
+  const noPath = finalPath.length === 0;
+
+  let finalCost = 0;
+  if (!noPath) {
+    for (let i = 1; i < finalPath.length; i++) {
+        let [r, c] = finalPath[i];
+        finalCost += maze[r][c] === 3 ? 3 : 1;
+    }
+  }
 
   return {
-    path: foundPath ?? [],
+    path: finalPath,
+    pathLength: finalPath.length,
     exploredCount: exploredNodes.length,
-    exploredNodes,
-    pathCost: cost,
+    exploredNodes: exploredNodes,
+    pathCost: finalCost,
     time: performance.now() - timeStart,
+    noPath: noPath
   };
 };
-
-export { IDAStar };

@@ -1,85 +1,76 @@
 const IDDFS = (maze, start, goal) => {
-    let timeStart = performance.now();
-    let maxLength = maze.length * maze[0].length;
-    let exploredNodes = [];
-    let path = [];
+  let timeStart = performance.now();
+  let maxLength = maze.length * maze[0].length;
+  let exploredNodes = [];
+  let path = [];
 
-    let exploredCount = 0; 
-    const MAX_STORED_NODES = 50000;
+  const DLS = (src, target, limit, visited, currentPath, exploredNodes) => {
+    let [x, y] = src;
+    exploredNodes.push([x, y]);
 
-    const DLS = (src, target, limit, visited, currentPath) => {
+    if (src[0] === target[0] && src[1] === target[1]) {
+      path = [...currentPath];
+      return true;
+    }
 
-        let [x, y] = src;
-        exploredCount++;
+    if (limit <= 0) return false;
 
-        if (exploredNodes.length < MAX_STORED_NODES) {
-            exploredNodes.push([x, y]);
-        }
+    const dirs = [
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+      [0, -1]
+    ];
 
+    for (let [dx, dy] of dirs) {
+      let nx = src[0] + dx,
+        ny = src[1] + dy;
+      let key = `${nx},${ny}`;
 
-        if (src[0] === target[0] && src[1] === target[1]) {
-            path = [...currentPath];
+      if (nx >= 0 && nx < maze.length && ny >= 0 && ny < maze[0].length) {
+        if (maze[nx][ny] !== 1 && !visited.has(key)) {
+          visited.add(key);
+          currentPath.push([nx, ny]);
+
+          if (DLS([nx, ny], target, limit - 1, visited, currentPath, exploredNodes)) {
             return true;
+          }
+
+          currentPath.pop();
+          visited.delete(key);
         }
-
-        if (limit <= 0) return false;
-
-        const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
-
-        for (let [dx, dy] of dirs) {
-            let nx = src[0] + dx, ny = src[1] + dy;
-            let key = `${nx},${ny}`;
-
-            if (nx >= 0 && nx < maze.length && ny >= 0 && ny < maze[0].length) {
-                if (maze[nx][ny] !== 1 && !visited.has(key)) {
-                    visited.add(key);
-                    currentPath.push([nx, ny]);
-
-                    if (DLS([nx, ny], target, limit - 1, visited, currentPath)) {
-                        return true;
-                    }
-
-                    currentPath.pop();
-                    visited.delete(key);
-                }
-            }
-        }
-        return false;
+      }
     }
+    return false;
+  };
 
-    for (let limit = 0; limit < maxLength; limit++) {
-        let visited = new Set();
-        visited.add(`${start[0]},${start[1]}`);
-        let currentPath = [start]
+  for (let limit = 0; limit < maxLength; limit++) {
+    let visited = new Set();
+    visited.add(`${start[0]},${start[1]}`);
+    let currentPath = [start];
 
-        if (DLS(start, goal, limit, visited, currentPath)) {
-            break;
-        }
+    if (DLS(start, goal, limit, visited, currentPath, exploredNodes)) {
+      break;
     }
+  }
 
-    let finalCost = 0;
-    if (path.length > 0) {
-        for (let i = 1; i < path.length; i++) {
-            let [px, py] = path[i];
-            let terrainType = maze[px][py];
-
-            if (terrainType === 3) {
-                finalCost += 3; // Đầm lầy
-            } else {
-                finalCost += 1; // Đường trống
-            }
-        }
+  let finalCost = 0;
+  if (path.length > 0) {
+    for (let i = 1; i < path.length; i++) {
+        let [r, c] = path[i];
+        finalCost += maze[r][c] === 3 ? 3 : 1;
     }
+  }
 
-    exploredNodes.length = exploredCount;
-
-    return {
-        path: path,
-        exploredCount: exploredCount,
-        exploredNodes: exploredNodes,
-        pathCost: finalCost,
-        time: performance.now() - timeStart
-    }
-}
+  return {
+    path: path,
+    pathLength: path.length,
+    exploredNodes: exploredNodes,
+    exploredCount: exploredNodes.length,
+    pathCost: finalCost,
+    time: performance.now() - timeStart,
+    noPath: path.length === 0
+  };
+};
 
 export { IDDFS };

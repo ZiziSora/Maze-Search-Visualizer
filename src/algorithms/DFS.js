@@ -1,12 +1,17 @@
+const DIRECTIONS = [
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+  [0, -1]
+];
+
 // DFS
-const DFS = (maze, start, goal) => {
+export const DFS = (maze, start, goal) => {
   const path = [];
   const exploredNodes = [];
   const visited = new Set();
   let cost = 0;
   const timeStart = performance.now();
-  const DIRECTIONS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
-
 
   function isValid(x, y) {
     return x >= 0 && y >= 0 && x < maze.length && y < maze[0].length && maze[x][y] !== 1;
@@ -21,7 +26,9 @@ const DFS = (maze, start, goal) => {
     exploredNodes.push([x, y]);
     currentPath.push([x, y]);
     const moveCost = maze[x][y] === 3 ? 3 : 1;
-    currentCost[0] += moveCost;
+    if (!(x === start[0] && y === start[1])) {
+      currentCost[0] += moveCost;
+    }
 
     if (x === goal[0] && y === goal[1]) {
       cost = currentCost[0];
@@ -35,19 +42,29 @@ const DFS = (maze, start, goal) => {
 
     currentPath.pop();
     currentCost[0] -= moveCost;
-    // Do NOT delete from visited here to maintain O(V) graph traversal instead of O(b^d) exponential simple path traversal
     return false;
   }
 
   dfsRecurse(start[0], start[1], [], [0]);
+  if (path.length === 0) {
+    return {
+      path: [],
+      pathLength: 0,
+      exploredCount: exploredNodes.length,
+      pathCost: 0,
+      exploredNodes: exploredNodes,
+      time: performance.now() - timeStart,
+      noPath: true
+    };
+  }
 
   return {
-    path,
+    path: path,
+    pathLength: path.length,
     exploredCount: exploredNodes.length,
+    exploredNodes: exploredNodes,
     pathCost: cost,
-    exploredNodes,
     time: performance.now() - timeStart,
+    noPath: false
   };
 };
-
-export {DFS}; 

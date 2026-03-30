@@ -8,6 +8,8 @@ class Cell {
   }
 }
 
+// ================= COMMON =================
+
 // kiểm tra hợp lệ
 function isValid(grid, row, col) {
   return row >= 0 && row < grid.length && col >= 0 && col < grid[0].length;
@@ -28,7 +30,14 @@ function calculateH(row, col, dest) {
   return Math.hypot(row - dest[0], col - dest[1]);
 }
 
-function tracePath(cellDetails, dest, exploredCount, exploredNodes) {
+// in path
+function printPath(path) {
+  console.log(path.map(p => `[${p[0]}, ${p[1]}]`).join(" -> "));
+}
+
+// ================= A* =================
+
+function tracePath(cellDetails, dest) {
   let path = [];
   let [row, col] = dest;
 
@@ -38,11 +47,13 @@ function tracePath(cellDetails, dest, exploredCount, exploredNodes) {
   }
   path.push([row, col]);
   path.reverse();
-  return { path: path, pathCost: cellDetails[dest[0]][dest[1]].g, exploredCount: exploredCount, exploredNodes: exploredNodes };
+  return path;
 }
 
-function beamSearch(grid, src, dest, k = 2) {
-  let closed = [];
+export function beamSearch(grid, src, dest, k) {
+  const closed = [];
+  const exploredNodes = [];
+  let timeStart = performance.now();
   for (let i = 0; i < grid.length; i++) {
     closed[i] = [];
     for (let j = 0; j < grid[0].length; j++) {
@@ -50,7 +61,7 @@ function beamSearch(grid, src, dest, k = 2) {
     }
   }
 
-  let cell = [];
+  const cell = [];
   for (let i = 0; i < grid.length; i++) {
     cell[i] = [];
     for (let j = 0; j < grid[0].length; j++) {
@@ -60,17 +71,9 @@ function beamSearch(grid, src, dest, k = 2) {
 
   let [i, j] = src;
 
-  cell[i][j] = {
-    f: 0,
-    g: 0,
-    h: 0,
-    parent_i: i,
-    parent_j: j
-  };
+  cell[i][j] = { f: 0, g: 0, h: 0, parent_i: i, parent_j: j };
 
   let open = [{ f: 0, i, j }];
-  let exploredCount = 0;
-  let exploredNodes = [];
 
   let dirs = [
     [0, 1],
@@ -84,11 +87,22 @@ function beamSearch(grid, src, dest, k = 2) {
 
     for (let node of open) {
       let { i, j } = node;
-
+      if (closed[i][j]) continue;
       closed[i][j] = true;
-      exploredCount++;
       exploredNodes.push([i, j]);
-
+      if (isDestination(i, j, dest)) {
+        let path = tracePath(cell, dest);
+        let finalCost = cell[i][j].g;
+        return {
+          path: path,
+          pathLength: path.length,
+          exploredNodes: exploredNodes,
+          exploredCount: exploredNodes.length,
+          pathCost: finalCost,
+          time: performance.now() - timeStart,
+          noPath: false
+        };
+      }
       for (let [di, dj] of dirs) {
         let ni = i + di,
           nj = j + dj;
@@ -100,7 +114,7 @@ function beamSearch(grid, src, dest, k = 2) {
         let hNew = calculateH(ni, nj, dest);
         let fNew = gNew + hNew;
 
-        if (cell[ni][nj].f > fNew || isDestination(ni, nj, dest)) {
+        if (cell[ni][nj].f > fNew) {
           cell[ni][nj] = {
             f: fNew,
             g: gNew,
@@ -108,20 +122,17 @@ function beamSearch(grid, src, dest, k = 2) {
             parent_i: i,
             parent_j: j
           };
-          if (isDestination(ni, nj, dest)) {
-            return tracePath(cell, dest, exploredCount, exploredNodes);
-          }
           newOpen.push({ f: fNew, i: ni, j: nj });
         }
       }
     }
 
-    newOpen.sort((a, b) => a.f - b.f);
+    newOpen.sort(function (a, b) {
+      return a.f - b.f;
+    });
 
     open = newOpen.slice(0, k);
   }
 
-  return { path: [], pathCost: 0, exploredCount: exploredCount, exploredNodes: exploredNodes };
+  return { path: [], pathLength: 0, pathCost: 0, exploredCount: exploredNodes.length, exploredNodes: exploredNodes, time: performance.now() - timeStart, noPath: true };
 }
-
-export { beamSearch };

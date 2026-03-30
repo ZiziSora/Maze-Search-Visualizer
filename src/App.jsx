@@ -45,6 +45,8 @@ export default function App() {
       setIsSolving(false);
     }
     resetProgress();
+    handleReset();
+    
   }, [grid, selected, resetProgress]);
 
   // Academic Constraints
@@ -128,7 +130,7 @@ export default function App() {
           <label className="control_label">
             Grid Size <span className="control_value">{cellCount * 2 - 1}×{cellCount * 2 - 1}</span>
           </label>
-          <input type="range" min="5" max="51" step="2"
+          <input type="range" min="5" max="50" step="2"
             disabled={mapIndex !== 0}
             value={cellCount} onChange={(e) => setCellCount(Number(e.target.value))} />
         </div>
@@ -146,7 +148,7 @@ export default function App() {
           <label className="control_label">
             Speed <span className="control_value">{speed}</span>
           </label>
-          <input type="range" min="1" max="51" step="1"
+          <input type="range" min="1" max="50" step="1"
             disabled={hasStarted}
             value={speed} onChange={(e) => setSpeed(Number(e.target.value))} />
         </div>
@@ -216,7 +218,7 @@ export default function App() {
         <div className="legend">
           <div className="legend_row"><span style={{fontSize:"1.1rem", display:"inline-block", width:"20px", textAlign:"center"}}>🧱</span>Wall</div>
           <div className="legend_row"><span className="swatch" style={{background:"#fcf9f2", border:"1px solid #ccc"}} />Open path (cost 1)</div>
-          <div className="legend_row"><span style={{fontSize:"1.1rem", display:"inline-block", width:"20px", textAlign:"center"}}>💦</span>Puddle (cost 3)</div>
+          <div className="legend_row"><span style={{fontSize:"1.1rem", display:"inline-block", width:"20px", textAlign:"center"}}>🪨</span>Rock (cost 3)</div>
           <div className="legend_row"><span style={{fontSize:"1.1rem", display:"inline-block", width:"20px", textAlign:"center"}}>🐭</span>Jerry (Start)</div>
           <div className="legend_row"><span style={{fontSize:"1.1rem", display:"inline-block", width:"20px", textAlign:"center"}}>🧀</span>Cheese (End)</div>
           <div className="legend_row"><span className="swatch" style={{background:"rgba(99,179,237,0.65)"}} />Visited</div>
@@ -226,10 +228,15 @@ export default function App() {
         {/* Stats — shown as soon as search finishes computing */}
         {stats && (
           <div className="stats_box">
+            {stats.noPath && (
+              <div style={{ color: "#ef4444", fontWeight: "bold", marginBottom: "8px" }}>
+                ❌ No path found
+              </div>
+            )}
             <div className="stats_title"> {selected} Results</div>
             <div className="stat_row">
               <span className="stat_label">Cells visited</span>
-              <span className="stat_value">{stats.visitedCount}</span>
+              <span className="stat_value">{stats.exploredCount}</span>
             </div>
             <div className="stat_row">
               <span className="stat_label">Path cost</span>

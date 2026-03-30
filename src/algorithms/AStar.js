@@ -8,6 +8,8 @@ class Cell {
   }
 }
 
+// ================= COMMON =================
+
 // kiểm tra hợp lệ
 function isValid(grid, row, col) {
   return row >= 0 && row < grid.length && col >= 0 && col < grid[0].length;
@@ -28,7 +30,14 @@ function calculateH(row, col, dest) {
   return Math.hypot(row - dest[0], col - dest[1]);
 }
 
-function tracePath(cellDetails, dest, exploredCount, exploredNodes) {
+// in path
+function printPath(path) {
+  console.log(path.map(p => `[${p[0]}, ${p[1]}]`).join(" -> "));
+}
+
+// ================= A* =================
+
+function tracePath(cellDetails, dest) {
   let path = [];
   let [row, col] = dest;
 
@@ -38,22 +47,24 @@ function tracePath(cellDetails, dest, exploredCount, exploredNodes) {
   }
   path.push([row, col]);
   path.reverse();
-  return { path: path, pathCost: cellDetails[dest[0]][dest[1]].g, exploredCount: exploredCount, exploredNodes: exploredNodes };
+  return path;
 }
 
-function aStarSearch(grid, src, dest) {
-  var closed = [];
-  for (var x = 0; x < grid.length; x++) {
+export function aStarSearch(grid, src, dest) {
+  const closed = [];
+  const exploredNodes = [];
+  let timeStart = performance.now();
+  for (let x = 0; x < grid.length; x++) {
     closed[x] = [];
-    for (var y = 0; y < grid[0].length; y++) {
+    for (let y = 0; y < grid[0].length; y++) {
       closed[x][y] = false;
     }
   }
 
-  var cell = [];
-  for (var x = 0; x < grid.length; x++) {
+  const cell = [];
+  for (let x = 0; x < grid.length; x++) {
     cell[x] = [];
-    for (var y = 0; y < grid[0].length; y++) {
+    for (let y = 0; y < grid[0].length; y++) {
       cell[x][y] = new Cell();
     }
   }
@@ -63,8 +74,6 @@ function aStarSearch(grid, src, dest) {
   cell[i][j] = { f: 0, g: 0, h: 0, parent_i: i, parent_j: j };
 
   let open = [{ f: 0, i, j }];
-  let exploredCount = 0;
-  let exploredNodes = [];
 
   let dirs = [
     [0, 1],
@@ -74,12 +83,28 @@ function aStarSearch(grid, src, dest) {
   ];
 
   while (open.length) {
-    open.sort((a, b) => a.f - b.f);
-    ({ i, j } = open.shift());
+    open.sort(function (a, b) {
+      return a.f - b.f;
+    });
 
+    ({ i, j } = open.shift());
+    if (closed[i][j]) continue;
     closed[i][j] = true;
-    exploredCount++;
     exploredNodes.push([i, j]);
+
+    if (isDestination(i, j, dest)) {
+      let path = tracePath(cell, dest);
+      let finalCost = cell[i][j].g;
+      return {
+        path: path,
+        pathLength: path.length,
+        exploredNodes: exploredNodes,
+        exploredCount: exploredNodes.length,
+        pathCost: finalCost,
+        time: performance.now() - timeStart,
+        noPath: false
+      };
+    }
 
     for (let [di, dj] of dirs) {
       let ni = i + di,
@@ -93,9 +118,7 @@ function aStarSearch(grid, src, dest) {
       let hNew = calculateH(ni, nj, dest);
       let fNew = gNew + hNew;
 
-      if (cell[ni][nj].f > fNew || isDestination(ni, nj, dest)) {
-        open.push({ f: fNew, i: ni, j: nj });
-
+      if (cell[ni][nj].f > fNew) {
         cell[ni][nj] = {
           f: fNew,
           g: gNew,
@@ -103,14 +126,10 @@ function aStarSearch(grid, src, dest) {
           parent_i: i,
           parent_j: j
         };
-        if (isDestination(ni, nj, dest)) {
-          return tracePath(cell, dest, exploredCount, exploredNodes);
-        }
+        open.push({ f: fNew, i: ni, j: nj });
       }
     }
   }
 
-  return { path: [], pathCost: 0, exploredCount: exploredCount, exploredNodes: exploredNodes };
+  return { path: [], pathLength: 0, pathCost: 0, exploredCount: exploredNodes.length, exploredNodes: exploredNodes, time: performance.now() - timeStart, noPath: true };
 }
-
-export { aStarSearch };

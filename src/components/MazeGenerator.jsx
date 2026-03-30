@@ -86,6 +86,9 @@ export const STEP_COLORS = {
 
 const CANVAS_PX = 600;
 
+
+
+
 function drawEmoji(ctx, r, c, cellPx, emoji, bgColor = null) {
   const x = Math.round(c * cellPx);
   const y = Math.round(r * cellPx);
@@ -96,11 +99,16 @@ function drawEmoji(ctx, r, c, cellPx, emoji, bgColor = null) {
     ctx.fillRect(x, y, size, size);
   }
 
-  // Draw emoji if cell size is big enough
   if (cellPx >= 8) {
     ctx.font = `${Math.floor(cellPx * 0.75)}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+
+    // 👉 THÊM Ở ĐÂY
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 1;
+    ctx.strokeText(emoji, x + size / 2, y + size / 2 + (cellPx * 0.05));
+
     ctx.fillText(emoji, x + size / 2, y + size / 2 + (cellPx * 0.05));
   }
 }
@@ -128,16 +136,17 @@ export function drawMaze(ctx, grid, startNode, targetNode) {
       if (type === 1) {
         // Wall
         drawEmoji(ctx, r, c, cellPx, "🧱", "#e2e8f0");
-      } else if (type === 3 || type === 5) {
+      } else if (type === 3) {
         // Swamp / Hazard
-        drawEmoji(ctx, r, c, cellPx, "💦", "#bae6fd");
+        drawEmoji(ctx, r, c, cellPx, "🪨", "#bae6fd");
       }
     }
   }
 
   // Draw start marker (Jerry) - Migrated to CSS Overlay Div, no longer drew on Canvas directly
   // Draw end marker (Cheese)
-  if (targetNode) drawEmoji(ctx, targetNode[0], targetNode[1], cellPx, "🧀", "rgba(239, 68, 68, 0.2)");
+  if (targetNode) drawEmoji(ctx, targetNode[0], targetNode[1], cellPx, "🧀", "#fde68a(239, 68, 68, 0.2)")
+  //drawEmoji(ctx, r, c, cellSize, "🧀", "");
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -218,16 +227,48 @@ export default MazeGenerator;
 // ─── Solve + Animate ─────────────────────────────────────────────────────────
 
 // speed: 1 (slowest) → 51 (fastest). Converted to ms delay: higher speed = shorter interval.
-export function solveAndAnimate(algoName, grid, canvas, startNode, targetNode, progressRef, stepsRef, speed, onStats, onComplete) {
+export function solveAndAnimate(
+  algoName,
+  grid,
+  canvas,
+  startNode,
+  targetNode,
+  progressRef,
+  stepsRef,
+  speed,
+  onStats,
+  onComplete
+) {
   if (!canvas) return;
+
   const ctx = canvas.getContext("2d");
   const rows = grid.length;
   const cellSize = CANVAS_PX / rows;
 
+  let result = null; // ✅ FIX scope
+
+  // 👉 reset mỗi lần run
+  let visitedCount = 0;   
+  let currentCost = 0;
+  let currentLength = 0;
+  let noPathFlag = false
+
   if (progressRef.current === 0) {
     drawMaze(ctx, grid, startNode, targetNode);
 
-    let result;
+    // Reset Jerry Sprite visually right before starting animation
+    const jerryContainer = document.getElementById("jerry-sprite-container");
+    const jerryInner = document.getElementById("jerry-sprite");
+    if (jerryContainer && startNode) {
+      jerryContainer.style.transitionDuration = "0ms";
+      jerryContainer.style.transform = `translate(${Math.round(startNode[1] * cellSize)}px, ${Math.round(startNode[0] * cellSize)}px)`;
+      // force reflow
+      void jerryContainer.offsetWidth; 
+    }
+    if (jerryInner) {
+      jerryInner.innerHTML = "🐭";
+    }
+
     if (algoName === 'DFS') result = DFS(grid, startNode, targetNode);
     else if (algoName === 'BFS') result = BFS(grid, startNode, targetNode);
     else if (algoName === 'UCS') result = uniformCostSearchGrid(grid, startNode, targetNode);
@@ -236,58 +277,77 @@ export function solveAndAnimate(algoName, grid, canvas, startNode, targetNode, p
     else if (algoName === 'IDA*') result = IDAStar(grid, startNode, targetNode);
     else if (algoName === 'IDDFS') result = IDDFS(grid, startNode, targetNode);
     else if (algoName === 'Bidirectional') result = bidirectionalSearchGrid(grid, startNode, targetNode);
-    
-    if (result) {
-        let finalSteps = result.history;
-        
-        // If the algorithm doesn't use the '{r, c, type}' history format, we construct it dynamically
-        if (!finalSteps) {
-            finalSteps = [];
-            if (result.exploredNodes) {
-                finalSteps.push(...result.exploredNodes.map(node => ({ r: node[0], c: node[1], type: 'visit' })));
-            }
-            if (result.path) {
-                finalSteps.push(...result.path.map(node => ({ r: node[0], c: node[1], type: 'target' })));
-            }
-        }
-        
-        stepsRef.current = finalSteps;
-        
-        // Ensure 100% accuracy of metrics regardless of the algorithm's raw output math quirks
-        let accuratePathCost = 0;
-        if (result.path && result.path.length > 0) {
-            for (let i = 1; i < result.path.length; i++) {
-                let [pr, pc] = result.path[i];
-                accuratePathCost += (grid[pr][pc] === 3 ? 3 : 1);
-            }
-        }
 
-        if (onStats) {
-            onStats({ 
-                visitedCount: result.exploredNodes ? result.exploredNodes.length : (result.exploredCount || 0), 
-                pathCost: accuratePathCost,
-                pathLength: result.path ? Math.max(0, result.path.length - 1) : 0,
-                time: result.time ?? 0 
-            });
-        }
+    if (result) {
+
+  // ❌ NO PATH
+  if (!result.path || result.path.length === 0) {
+    noPathFlag = true;
+
+    stepsRef.current = result.exploredNodes.map(node => ({
+      r: node[0],
+      c: node[1],
+      type: 'visit'
+    }));
+  }
+
+  // ✅ CÓ PATH
+  else {
+    let finalSteps = result.history;
+
+    if (!finalSteps) {
+      finalSteps = [];
+
+      if (result.exploredNodes) {
+        finalSteps.push(
+          ...result.exploredNodes.map(node => ({
+            r: node[0],
+            c: node[1],
+            type: 'visit'
+          }))
+        );
+      }
+
+      if (result.path) {
+        finalSteps.push(
+          ...result.path.map(node => ({
+            r: node[0],
+            c: node[1],
+            type: 'target'
+          }))
+        );
+      }
     }
+
+    stepsRef.current = finalSteps;
+  }
+}
   }
 
   const steps = stepsRef.current;
-  // Invert speed so slider feels natural: higher value = faster = shorter delay
-  const delayMs = Math.max(1, Math.round(1050 - speed * 20));
 
-  // Slow Jerry down exclusively to run at ~180ms per tile for cinematic effect
+  const delayMs = Math.max(1, Math.round(1050 - speed * 20));
   const framesToSkip = Math.max(0, Math.round(180 / delayMs) - 1);
   let skipCount = 0;
 
   const interval = setInterval(() => {
     if (progressRef.current >= steps.length) {
       clearInterval(interval);
+
+      // 👉 FINAL stats (chuẩn 100%)
+      if (onStats && result) {
+        onStats({
+          exploredCount: result.exploredCount ?? progressRef.current,
+          pathCost: result.pathCost ?? currentCost,
+          pathLength: result.pathLength ?? currentLength,
+          time: result.time ?? 0,
+          noPath: noPathFlag
+        });
+      }
+
       if (onComplete) onComplete();
       return;
     }
-
     const { r, c, type } = steps[progressRef.current];
 
     if (type === 'target' && skipCount < framesToSkip) {
@@ -295,8 +355,10 @@ export function solveAndAnimate(algoName, grid, canvas, startNode, targetNode, p
       return;
     }
     skipCount = 0;
-    
+
+    // 👉 VẼ
     if (type === 'visit' || type === 'backtrack') {
+      visitedCount++;
       ctx.fillStyle = STEP_COLORS[type] ?? STEP_COLORS.visit;
       ctx.fillRect(
         Math.round(c * cellSize),
@@ -304,8 +366,10 @@ export function solveAndAnimate(algoName, grid, canvas, startNode, targetNode, p
         Math.ceil(cellSize),
         Math.ceil(cellSize)
       );
-    } else if (type === 'target') {
-      // 1. Draw green path on the CURRENT cell
+    }
+
+    else if (type === 'target') {
+      
       ctx.fillStyle = STEP_COLORS.target;
       ctx.fillRect(
         Math.round(c * cellSize),
@@ -314,24 +378,45 @@ export function solveAndAnimate(algoName, grid, canvas, startNode, targetNode, p
         Math.ceil(cellSize)
       );
 
-      // 2. Smoothly Glide Jerry down the correct final path!
+      // 👉 update path stats
+      currentLength++;
+      if (currentLength > 1) {
+        const cellVal = grid[r][c];
+        const cellCost = cellVal === 3 ? 3 : 1;
+        currentCost += cellCost;
+      }
+
+      // Jerry move
       const isEnd = progressRef.current === steps.length - 1;
-      const emojiToDraw = isEnd ? "😋" : "🐭";
-      
       const jerryContainer = document.getElementById("jerry-sprite-container");
       const jerryInner = document.getElementById("jerry-sprite");
-      
+
       if (jerryContainer) {
-        // Synchronously stretch the CSS gliding duration to precisely match the frame throttling time!
-        jerryContainer.style.transitionDuration = `${Math.max(delayMs * (framesToSkip + 1), 100)}ms`;
-        jerryContainer.style.transform = `translate(${Math.round(c * cellSize)}px, ${Math.round(r * cellSize)}px)`;
+        jerryContainer.style.transitionDuration =
+          `${Math.max(delayMs * (framesToSkip + 1), 100)}ms`;
+
+        jerryContainer.style.transform =
+          `translate(${Math.round(c * cellSize)}px, ${Math.round(r * cellSize)}px)`;
       }
+
       if (isEnd && jerryInner) {
-        jerryInner.innerHTML = emojiToDraw;
+        jerryInner.innerHTML = "😋";
       }
     }
 
     progressRef.current++;
+
+    // 👉 UPDATE STATS REAL-TIME
+    if (onStats) {
+      onStats({
+        exploredCount: visitedCount,
+        pathCost: currentCost,
+        pathLength: currentLength,
+        time: result?.time ?? 0,
+        noPath: false
+      });
+    }
+
   }, delayMs);
 
   return interval;
