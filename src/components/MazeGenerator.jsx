@@ -77,11 +77,10 @@ export const CELL_COLORS = {
   3: "#2dd4bf",  // muddy – teal
 };
 
-// Visit / backtrack / path colors for the animation overlay
 export const STEP_COLORS = {
-  visit:     "rgba(99, 179, 237, 0.65)",  // soft blue
-  backtrack: "rgba(252, 129, 74, 0.45)",  // soft orange
-  target:    "rgba(72, 199, 142, 0.9)",   // bright green
+  visit:     "rgba(99, 179, 237, 0.65)",  
+  backtrack: "rgba(252, 129, 74, 0.45)",  
+  target:    "rgba(72, 199, 142, 0.9)",   
 };
 
 const CANVAS_PX = 600;
@@ -104,7 +103,6 @@ function drawEmoji(ctx, r, c, cellPx, emoji, bgColor = null) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // 👉 THÊM Ở ĐÂY
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 1;
     ctx.strokeText(emoji, x + size / 2, y + size / 2 + (cellPx * 0.05));
@@ -124,7 +122,6 @@ export function drawMaze(ctx, grid, startNode, targetNode) {
     for (let c = 0; c < cols; c++) {
       const type = grid[r][c];
 
-      // Base path background
       ctx.fillStyle = "#fcf9f2";
       ctx.fillRect(
         Math.round(c * cellPx),
@@ -143,10 +140,7 @@ export function drawMaze(ctx, grid, startNode, targetNode) {
     }
   }
 
-  // Draw start marker (Jerry) - Migrated to CSS Overlay Div, no longer drew on Canvas directly
-  // Draw end marker (Cheese)
   if (targetNode) drawEmoji(ctx, targetNode[0], targetNode[1], cellPx, "🧀", "#fde68a(239, 68, 68, 0.2)")
-  //drawEmoji(ctx, r, c, cellSize, "🧀", "");
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -226,7 +220,6 @@ export default MazeGenerator;
 
 // ─── Solve + Animate ─────────────────────────────────────────────────────────
 
-// speed: 1 (slowest) → 51 (fastest). Converted to ms delay: higher speed = shorter interval.
 export function solveAndAnimate(
   algoName,
   grid,
@@ -302,7 +295,6 @@ export function solveAndAnimate(
 
     if (result) {
 
-  // ❌ NO PATH
   if (!result.path || result.path.length === 0) {
     noPathFlag = true;
 
@@ -313,7 +305,6 @@ export function solveAndAnimate(
     }));
   }
 
-  // ✅ CÓ PATH
   else {
     let finalSteps = result.history;
 
@@ -344,7 +335,6 @@ export function solveAndAnimate(
     stepsRef.current = finalSteps;
   }
   
-  // Attach result so we can recover it on pause/continue
   if (stepsRef.current) {
     stepsRef.current.algoResult = result;
   }
@@ -353,15 +343,15 @@ export function solveAndAnimate(
 
   const steps = stepsRef.current;
 
-  const delayMs = Math.max(1, Math.round(1050 - speed * 20));
-  const framesToSkip = Math.max(0, Math.round(180 / delayMs) - 1);
+  const sizeFactor = Math.max(1, rows / 21);
+  const delayMs = Math.max(1, Math.round((1050 - speed * 20) / sizeFactor));
+  const framesToSkip = Math.max(0, Math.round((180 / delayMs) * sizeFactor) - 1);
   let skipCount = 0;
 
   const interval = setInterval(() => {
     if (progressRef.current >= steps.length) {
       clearInterval(interval);
 
-      // 👉 FINAL stats (chuẩn 100%)
       if (onStats && result) {
         onStats({
           exploredCount: result.exploredCount ?? progressRef.current,
@@ -383,7 +373,6 @@ export function solveAndAnimate(
     }
     skipCount = 0;
 
-    // 👉 VẼ
     if (type === 'visit' || type === 'backtrack') {
       visitedCount++;
       ctx.fillStyle = STEP_COLORS[type] ?? STEP_COLORS.visit;
@@ -405,7 +394,6 @@ export function solveAndAnimate(
         Math.ceil(cellSize)
       );
 
-      // 👉 update path stats
       currentLength++;
       if (currentLength > 1) {
         const cellVal = grid[r][c];
@@ -433,7 +421,6 @@ export function solveAndAnimate(
 
     progressRef.current++;
 
-    // 👉 UPDATE STATS REAL-TIME
     if (onStats) {
       onStats({
         exploredCount: visitedCount,

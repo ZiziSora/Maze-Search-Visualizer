@@ -23,8 +23,7 @@ const IDDFS = (maze, start, goal) => {
     ];
 
     for (let [dx, dy] of dirs) {
-      let nx = src[0] + dx,
-        ny = src[1] + dy;
+      let nx = src[0] + dx, ny = src[1] + dy;
       let key = `${nx},${ny}`;
 
       if (nx >= 0 && nx < maze.length && ny >= 0 && ny < maze[0].length) {
@@ -69,7 +68,6 @@ const IDDFS = (maze, start, goal) => {
     }
   }
 
-  // FORMAT RETURN LẠI THEO CHUẨN MỚI
   return {
     path,
     pathLength: path.length,

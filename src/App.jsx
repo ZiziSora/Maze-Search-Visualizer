@@ -14,7 +14,7 @@ export default function App() {
   const [cellCount, setCellCount] = useState(21);
   const [density,   setDensity]   = useState(0.18);
   const [seed,      setSeed]      = useState(Date.now());
-  const [speed,     setSpeed]     = useState(26);   // mid-range default
+  const [speed,     setSpeed]     = useState(26);   
   const [isSolving, setIsSolving] = useState(false);
   const [progress,  setProgress]  = useState(0);
   const [stats,     setStats]     = useState(null);  // { visitedCount, pathCost }
@@ -37,7 +37,6 @@ export default function App() {
     setStats(null);
   }, []);
 
-  // When grid changes: kill any running animation and reset everything
   useEffect(() => {
     if (animationTimerRef.current) {
       clearInterval(animationTimerRef.current);
@@ -49,16 +48,14 @@ export default function App() {
     
   }, [grid, selected, resetProgress]);
 
-  // Academic Constraints
-  const isIddfsAllowed = grid.length <= 25;
-  const isIdaStarAllowed = mapIndex === 0 || mapIndex === 1 || mapIndex === 3;
+  const isIddfsAllowed = true; 
+  const isIdaStarAllowed = (mapIndex === 0 || mapIndex === 1 || mapIndex === 3) && grid.length <= 31;
 
   useEffect(() => {
     if (selected === 'IDDFS' && !isIddfsAllowed) setSelected('DFS');
     if (selected === 'IDA*' && !isIdaStarAllowed) setSelected('DFS');
   }, [grid.length, mapIndex, selected]);
 
-  // Sync progress state every 150ms while animating
   useEffect(() => {
     if (!isSolving) return;
     const id = setInterval(() => setProgress(progressRef.current), 150);
@@ -74,12 +71,11 @@ export default function App() {
     resetProgress();
     if (mazeRef.current) drawMaze(mazeRef.current.getContext("2d"), grid, startNode, targetNode);
     
-    // Explicitly snap Jerry back to start line via DOM!
     const jerryContainer = document.getElementById("jerry-sprite-container");
     const jerryInner = document.getElementById("jerry-sprite");
     if (jerryContainer && startNode) {
       const cellSize = 600 / grid.length;
-      jerryContainer.style.transitionDuration = "0s"; // prevent sliding backwards across the map
+      jerryContainer.style.transitionDuration = "0s";
       jerryContainer.style.transform = `translate(${Math.round(startNode[1] * cellSize)}px, ${Math.round(startNode[0] * cellSize)}px)`;
       setTimeout(() => jerryContainer.style.transitionDuration = "0.1s", 50);
     }
@@ -92,7 +88,6 @@ export default function App() {
       animationTimerRef.current = null;
       setIsSolving(false);
     } else {
-      // Finished → restart from scratch
       if (stepsRef.current.length > 0 && progressRef.current >= stepsRef.current.length) {
         progressRef.current = 0;
         setProgress(0);
@@ -115,7 +110,6 @@ export default function App() {
   let solveLabel = isSolving ? "⏸ Pause" : isPaused ? "▶ Continue" : `▶ Run ${selected}`;
 
 
-  // Progress percentage for the progress bar
   const pct = stepsRef.current.length > 0
     ? Math.min(100, Math.round((progress / stepsRef.current.length) * 100))
     : 0;
@@ -128,7 +122,7 @@ export default function App() {
 
         <div className="control_group">
           <label className="control_label">
-            Grid Size <span className="control_value">{cellCount * 2 - 1}×{cellCount * 2 - 1}</span>
+            Grid Size <span className="control_value">{grid.length}×{grid[0].length}</span>
           </label>
           <input type="range" min="5" max="50" step="2"
             disabled={mapIndex !== 0}
@@ -230,7 +224,7 @@ export default function App() {
           <div className="stats_box">
             {stats.noPath && (
               <div style={{ color: "#ef4444", fontWeight: "bold", marginBottom: "8px" }}>
-                ❌ No path found
+                No path found
               </div>
             )}
             <div className="stats_title"> {selected} Results</div>
