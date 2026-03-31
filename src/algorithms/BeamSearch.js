@@ -49,15 +49,8 @@ function tracePath(cellDetails, dest) {
 }
 
 export function beamSearch(grid, src, dest, k) {
-  const closed = [];
   const exploredNodes = [];
   let timeStart = performance.now();
-  for (let i = 0; i < grid.length; i++) {
-    closed[i] = [];
-    for (let j = 0; j < grid[0].length; j++) {
-      closed[i][j] = false;
-    }
-  }
 
   const cell = [];
   for (let i = 0; i < grid.length; i++) {
@@ -85,8 +78,6 @@ export function beamSearch(grid, src, dest, k) {
 
     for (let node of open) {
       let { i, j } = node;
-      if (closed[i][j]) continue;
-      closed[i][j] = true;
       exploredNodes.push([i, j]);
 
       if (isDestination(i, j, dest)) {
@@ -109,7 +100,7 @@ export function beamSearch(grid, src, dest, k) {
         let ni = i + di,
           nj = j + dj;
 
-        if (!isValid(grid, ni, nj) || !isValidCell(grid, ni, nj) || closed[ni][nj]) continue;
+        if (!isValid(grid, ni, nj) || !isValidCell(grid, ni, nj)) continue;
 
         let cost = grid[ni][nj] === 3 ? 3 : 1;
         let gNew = cell[i][j].g + cost;
