@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import React from "react";
-import { useImperativeHandle, forwardRef } from 'react';
+import { useImperativeHandle, forwardRef } from "react";
 
 import { DFS } from "../algorithms/DFS.js";
 import { BFS } from "../algorithms/BFS.js";
@@ -25,7 +25,9 @@ export function generateMaze(numCells, costDensity = 0.18, seed = 42) {
   const randInt = (n) => Math.floor(rand() * n);
 
   const grid = Array.from({ length: size }, () => new Array(size).fill(1));
-  const visit = Array.from({ length: numCells }, () => new Array(numCells).fill(false));
+  const visit = Array.from({ length: numCells }, () =>
+    new Array(numCells).fill(false),
+  );
 
   const stack = [];
   const startR = randInt(numCells);
@@ -34,7 +36,12 @@ export function generateMaze(numCells, costDensity = 0.18, seed = 42) {
   stack.push([startR, startC]);
   grid[2 * startR + 1][2 * startC + 1] = 0;
 
-  const DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  const DIRS = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ];
 
   while (stack.length > 0) {
     const [cr, cc] = stack[stack.length - 1];
@@ -72,21 +79,18 @@ export function generateMaze(numCells, costDensity = 0.18, seed = 42) {
 // ─── Canvas Renderer ─────────────────────────────────────────────────────────
 
 export const CELL_COLORS = {
-  1: "#1a1a2e",  // wall  – deep navy
-  0: "#f5f0eb",  // path  – warm off-white
-  3: "#2dd4bf",  // muddy – teal
+  1: "#1a1a2e", // wall  – deep navy
+  0: "#f5f0eb", // path  – warm off-white
+  3: "#2dd4bf", // muddy – teal
 };
 
 export const STEP_COLORS = {
-  visit:     "rgba(99, 179, 237, 0.65)",  
-  backtrack: "rgba(252, 129, 74, 0.45)",  
-  target:    "rgba(72, 199, 142, 0.9)",   
+  visit: "rgba(99, 179, 237, 0.65)",
+  backtrack: "rgba(252, 129, 74, 0.45)",
+  target: "rgba(72, 199, 142, 0.9)",
 };
 
 const CANVAS_PX = 600;
-
-
-
 
 function drawEmoji(ctx, r, c, cellPx, emoji, bgColor = null) {
   const x = Math.round(c * cellPx);
@@ -105,9 +109,9 @@ function drawEmoji(ctx, r, c, cellPx, emoji, bgColor = null) {
 
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 1;
-    ctx.strokeText(emoji, x + size / 2, y + size / 2 + (cellPx * 0.05));
+    ctx.strokeText(emoji, x + size / 2, y + size / 2 + cellPx * 0.05);
 
-    ctx.fillText(emoji, x + size / 2, y + size / 2 + (cellPx * 0.05));
+    ctx.fillText(emoji, x + size / 2, y + size / 2 + cellPx * 0.05);
   }
 }
 
@@ -127,7 +131,7 @@ export function drawMaze(ctx, grid, startNode, targetNode) {
         Math.round(c * cellPx),
         Math.round(r * cellPx),
         Math.ceil(cellPx),
-        Math.ceil(cellPx)
+        Math.ceil(cellPx),
       );
 
       if (type === 1) {
@@ -140,7 +144,15 @@ export function drawMaze(ctx, grid, startNode, targetNode) {
     }
   }
 
-  if (targetNode) drawEmoji(ctx, targetNode[0], targetNode[1], cellPx, "🧀", "#fde68a(239, 68, 68, 0.2)")
+  if (targetNode)
+    drawEmoji(
+      ctx,
+      targetNode[0],
+      targetNode[1],
+      cellPx,
+      "🧀",
+      "#fde68a(239, 68, 68, 0.2)",
+    );
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -174,7 +186,14 @@ const MazeGenerator = forwardRef(({ grid, startNode, targetNode }, ref) => {
   const cellSize = CANVAS_PX / rows;
 
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: CANVAS_PX, margin: "0 auto" }}>
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        maxWidth: CANVAS_PX,
+        margin: "0 auto",
+      }}
+    >
       <canvas
         ref={canvasRef}
         width={CANVAS_PX}
@@ -197,7 +216,7 @@ const MazeGenerator = forwardRef(({ grid, startNode, targetNode }, ref) => {
           height: `${cellSize}px`,
           zIndex: 100,
           pointerEvents: "none",
-          transition: "transform 0.1s linear"
+          transition: "transform 0.1s linear",
         }}
       >
         <div
@@ -230,7 +249,7 @@ export function solveAndAnimate(
   stepsRef,
   speed,
   onStats,
-  onComplete
+  onComplete,
 ) {
   if (!canvas) return;
 
@@ -240,7 +259,7 @@ export function solveAndAnimate(
 
   let result = null;
 
-  let visitedCount = 0;   
+  let visitedCount = 0;
   let currentCost = 0;
   let currentLength = 0;
   let noPathFlag = false;
@@ -255,9 +274,9 @@ export function solveAndAnimate(
     for (let i = 0; i < progressRef.current; i++) {
       if (!steps[i]) continue;
       const { r, c, type } = steps[i];
-      if (type === 'visit' || type === 'backtrack') {
+      if (type === "visit" || type === "backtrack") {
         visitedCount++;
-      } else if (type === 'target') {
+      } else if (type === "target") {
         currentLength++;
         if (currentLength > 1) {
           const cellVal = grid[r][c];
@@ -278,148 +297,150 @@ export function solveAndAnimate(
       jerryContainer.style.transitionDuration = "0ms";
       jerryContainer.style.transform = `translate(${Math.round(startNode[1] * cellSize)}px, ${Math.round(startNode[0] * cellSize)}px)`;
       // force reflow
-      void jerryContainer.offsetWidth; 
+      void jerryContainer.offsetWidth;
     }
     if (jerryInner) {
       jerryInner.innerHTML = "🐭";
     }
 
-    if (algoName === 'DFS') result = DFS(grid, startNode, targetNode);
-    else if (algoName === 'BFS') result = BFS(grid, startNode, targetNode);
-    else if (algoName === 'UCS') result = uniformCostSearchGrid(grid, startNode, targetNode);
-    else if (algoName === 'A*') result = aStarSearch(grid, startNode, targetNode);
-    else if (algoName === 'Beam Search') result = beamSearch(grid, startNode, targetNode);
-    else if (algoName === 'IDA*') result = IDAStar(grid, startNode, targetNode);
-    else if (algoName === 'IDDFS') result = IDDFS(grid, startNode, targetNode);
-    else if (algoName === 'Bidirectional') result = bidirectionalSearchGrid(grid, startNode, targetNode);
+    if (algoName === "DFS") result = DFS(grid, startNode, targetNode);
+    else if (algoName === "BFS") result = BFS(grid, startNode, targetNode);
+    else if (algoName === "UCS")
+      result = uniformCostSearchGrid(grid, startNode, targetNode);
+    else if (algoName === "A*")
+      result = aStarSearch(grid, startNode, targetNode);
+    else if (algoName === "Beam Search")
+      result = beamSearch(grid, startNode, targetNode);
+    else if (algoName === "IDA*") result = IDAStar(grid, startNode, targetNode);
+    else if (algoName === "IDDFS") result = IDDFS(grid, startNode, targetNode);
+    else if (algoName === "Bidirectional")
+      result = bidirectionalSearchGrid(grid, startNode, targetNode);
 
     if (result) {
+      if (!result.path || result.path.length === 0) {
+        noPathFlag = true;
 
-  if (!result.path || result.path.length === 0) {
-    noPathFlag = true;
+        stepsRef.current = result.exploredNodes.map((node) => ({
+          r: node[0],
+          c: node[1],
+          type: "visit",
+        }));
+      } else {
+        let finalSteps = result.history;
 
-    stepsRef.current = result.exploredNodes.map(node => ({
-      r: node[0],
-      c: node[1],
-      type: 'visit'
-    }));
-  }
+        if (!finalSteps) {
+          finalSteps = [];
 
-  else {
-    let finalSteps = result.history;
+          if (result.exploredNodes) {
+            finalSteps.push(
+              ...result.exploredNodes.map((node) => ({
+                r: node[0],
+                c: node[1],
+                type: "visit",
+              })),
+            );
+          }
 
-    if (!finalSteps) {
-      finalSteps = [];
+          if (result.path) {
+            finalSteps.push(
+              ...result.path.map((node) => ({
+                r: node[0],
+                c: node[1],
+                type: "target",
+              })),
+            );
+          }
+        }
 
-      if (result.exploredNodes) {
-        finalSteps.push(
-          ...result.exploredNodes.map(node => ({
-            r: node[0],
-            c: node[1],
-            type: 'visit'
-          }))
-        );
+        stepsRef.current = finalSteps;
       }
 
-      if (result.path) {
-        finalSteps.push(
-          ...result.path.map(node => ({
-            r: node[0],
-            c: node[1],
-            type: 'target'
-          }))
-        );
+      if (stepsRef.current) {
+        stepsRef.current.algoResult = result;
       }
     }
-
-    stepsRef.current = finalSteps;
-  }
-  
-  if (stepsRef.current) {
-    stepsRef.current.algoResult = result;
-  }
-}
   }
 
   const steps = stepsRef.current;
 
   const sizeFactor = Math.max(1, rows / 21);
   const delayMs = Math.max(1, Math.round((1050 - speed * 20) / sizeFactor));
-  const framesToSkip = Math.max(0, Math.round((180 / delayMs) * sizeFactor) - 1);
+  const framesToSkip = Math.max(
+    0,
+    Math.round((180 / delayMs) * sizeFactor) - 1,
+  );
   let skipCount = 0;
 
+  // Lượng bước xử lý trong 1 khung hình.
+  // Speed càng cao hoặc map càng lớn thì Jerry "nhảy" càng nhiều bước cùng lúc.
+  const stepsPerTick = Math.max(1, Math.ceil((rows * speed) / 1500));
+
   const interval = setInterval(() => {
-    if (progressRef.current >= steps.length) {
-      clearInterval(interval);
+    // Dùng vòng lặp để xử lý nhiều bước trong cùng 1 tick
+    for (let i = 0; i < stepsPerTick; i++) {
+      if (progressRef.current >= steps.length) {
+        clearInterval(interval);
 
-      if (onStats && result) {
-        onStats({
-          exploredCount: result.exploredCount ?? progressRef.current,
-          pathCost: result.pathCost ?? currentCost,
-          pathLength: result.pathLength ?? currentLength,
-          time: result.time ?? 0,
-          noPath: noPathFlag
-        });
+        if (onStats && result) {
+          onStats({
+            exploredCount: result.exploredCount ?? progressRef.current,
+            pathCost: result.pathCost ?? currentCost,
+            pathLength: result.pathLength ?? currentLength,
+            time: result.time ?? 0,
+            noPath: noPathFlag,
+          });
+        }
+
+        if (onComplete) onComplete();
+        return;
       }
 
-      if (onComplete) onComplete();
-      return;
-    }
-    const { r, c, type } = steps[progressRef.current];
+      const { r, c, type } = steps[progressRef.current];
 
-    if (type === 'target' && skipCount < framesToSkip) {
-      skipCount++;
-      return;
-    }
-    skipCount = 0;
+      if (type === "visit" || type === "backtrack") {
+        visitedCount++;
+        ctx.fillStyle = STEP_COLORS[type] ?? STEP_COLORS.visit;
+        ctx.fillRect(
+          Math.round(c * cellSize),
+          Math.round(r * cellSize),
+          Math.ceil(cellSize),
+          Math.ceil(cellSize),
+        );
+      } else if (type === "target") {
+        ctx.fillStyle = STEP_COLORS.target;
+        ctx.fillRect(
+          Math.round(c * cellSize),
+          Math.round(r * cellSize),
+          Math.ceil(cellSize),
+          Math.ceil(cellSize),
+        );
 
-    if (type === 'visit' || type === 'backtrack') {
-      visitedCount++;
-      ctx.fillStyle = STEP_COLORS[type] ?? STEP_COLORS.visit;
-      ctx.fillRect(
-        Math.round(c * cellSize),
-        Math.round(r * cellSize),
-        Math.ceil(cellSize),
-        Math.ceil(cellSize)
-      );
-    }
+        currentLength++;
+        if (currentLength > 1) {
+          const cellVal = grid[r][c];
+          const cellCost = cellVal === 3 ? 3 : 1;
+          currentCost += cellCost;
+        }
 
-    else if (type === 'target') {
-      
-      ctx.fillStyle = STEP_COLORS.target;
-      ctx.fillRect(
-        Math.round(c * cellSize),
-        Math.round(r * cellSize),
-        Math.ceil(cellSize),
-        Math.ceil(cellSize)
-      );
+        // Jerry move
+        const isEnd = progressRef.current === steps.length - 1;
+        const jerryContainer = document.getElementById(
+          "jerry-sprite-container",
+        );
+        const jerryInner = document.getElementById("jerry-sprite");
 
-      currentLength++;
-      if (currentLength > 1) {
-        const cellVal = grid[r][c];
-        const cellCost = cellVal === 3 ? 3 : 1;
-        currentCost += cellCost;
+        if (jerryContainer) {
+          jerryContainer.style.transitionDuration = `${Math.min(delayMs, 80)}ms`;
+          jerryContainer.style.transform = `translate(${Math.round(c * cellSize)}px, ${Math.round(r * cellSize)}px)`;
+        }
+
+        if (isEnd && jerryInner) {
+          jerryInner.innerHTML = "😋";
+        }
       }
 
-      // Jerry move
-      const isEnd = progressRef.current === steps.length - 1;
-      const jerryContainer = document.getElementById("jerry-sprite-container");
-      const jerryInner = document.getElementById("jerry-sprite");
-
-      if (jerryContainer) {
-        jerryContainer.style.transitionDuration =
-          `${Math.max(delayMs * (framesToSkip + 1), 100)}ms`;
-
-        jerryContainer.style.transform =
-          `translate(${Math.round(c * cellSize)}px, ${Math.round(r * cellSize)}px)`;
-      }
-
-      if (isEnd && jerryInner) {
-        jerryInner.innerHTML = "😋";
-      }
-    }
-
-    progressRef.current++;
+      progressRef.current++;
+    } 
 
     if (onStats) {
       onStats({
@@ -427,10 +448,9 @@ export function solveAndAnimate(
         pathCost: currentCost,
         pathLength: currentLength,
         time: result?.time ?? 0,
-        noPath: false
+        noPath: false,
       });
     }
-
   }, delayMs);
 
   return interval;
