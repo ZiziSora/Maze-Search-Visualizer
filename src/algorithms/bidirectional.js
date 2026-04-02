@@ -1,14 +1,19 @@
 // ==========================================
-// THUẬT TOÁN BIDIRECTIONAL SEARCH (UPDATED)
+// THUẬT TOÁN BIDIRECTIONAL SEARCH 
 // ==========================================
 
-const grid = [
-  [0, 3, 1, 0, 0],
-  [0, 0, 1, 3, 0],
-  [1, 0, 0, 0, 1],
-  [1, 3, 1, 0, 0],
-  [1, 0, 0, 3, 0]
-];
+// Hàm tính toán chi phí thực tế (Cost) có xét sình lầy
+function calculateActualCost(path, gridMap) {
+  let cost = 0;
+  // Bắt đầu từ 1 vì đứng ở điểm start (index 0) không tốn cost
+  for (let i = 1; i < path.length; i++) {
+    let r = path[i][0];
+    let c = path[i][1];
+    // Nếu ô đó là 3 (bùn) thì cộng 3, ngược lại cộng 1
+    cost += (gridMap[r][c] === 3 ? 3 : 1);
+  }
+  return cost;
+}
 
 // Neighbor
 function getNeighbors(r, c, gridMap) {
@@ -109,7 +114,7 @@ export function bidirectionalSearchGrid(gridMap, start, goal) {
             pathLength: finalPath.length,
             exploredNodes: exploredNodes,
             exploredCount: exploredNodes.length,
-            pathCost: finalPath.length - 1, // Chi phí tính theo logic cũ
+            pathCost: calculateActualCost(finalPath, gridMap),
             time: endTime - startTime,
             noPath: false
           };
